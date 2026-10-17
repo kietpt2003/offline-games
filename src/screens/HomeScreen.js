@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from 'react';
 import {
-  Alert,
   FlatList,
   Keyboard,
   Pressable,
@@ -40,15 +39,13 @@ export function HomeScreen({ onOpenGame }) {
   const handleGamePress = game => {
     Keyboard.dismiss();
 
-    if (game.id === 'block-blast' || game.id === 'mahjong') {
+    if (
+      game.id === 'block-blast' ||
+      game.id === 'mahjong' ||
+      game.id === 'pikachu'
+    ) {
       onOpenGame(game.id);
-      return;
     }
-
-    Alert.alert(
-      game.name,
-      'Game đang được chuẩn bị để bạn chơi hoàn toàn offline.',
-    );
   };
 
   return (

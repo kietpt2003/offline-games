@@ -1,5 +1,7 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
+
+const PIKACHU_PREVIEW = require('../games/pikachu/assets/tile_01.png');
 
 function BlockArtwork() {
   const blockStyles = [
@@ -44,7 +46,7 @@ function PikachuArtwork() {
   return (
     <View style={styles.pikachuGroup}>
       <View style={styles.pikachuTile}>
-        <Text style={styles.pikachuFace}>●ᴗ●</Text>
+        <Image source={PIKACHU_PREVIEW} style={styles.pikachuImage} />
       </View>
       <View style={styles.connector}>
         <View style={styles.connectorDot} />
@@ -52,7 +54,7 @@ function PikachuArtwork() {
         <View style={styles.connectorDot} />
       </View>
       <View style={styles.pikachuTile}>
-        <Text style={styles.pikachuFace}>●ᴗ●</Text>
+        <Image source={PIKACHU_PREVIEW} style={styles.pikachuImage} />
       </View>
     </View>
   );
@@ -159,10 +161,9 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: '#FFF4B8',
   },
-  pikachuFace: {
-    color: '#72531C',
-    fontSize: 12,
-    fontWeight: '900',
+  pikachuImage: {
+    width: 38,
+    height: 42,
   },
   connector: {
     flexDirection: 'row',
