@@ -40,7 +40,7 @@ export function HomeScreen({ onOpenGame }) {
   const handleGamePress = game => {
     Keyboard.dismiss();
 
-    if (game.id === 'block-blast') {
+    if (game.id === 'block-blast' || game.id === 'mahjong') {
       onOpenGame(game.id);
       return;
     }
