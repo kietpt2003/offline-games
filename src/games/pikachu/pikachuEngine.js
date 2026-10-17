@@ -21,26 +21,26 @@ function shuffle(items, random = Math.random) {
 
 export function getLevelConfig(level) {
   if (level === 1) {
-    return { rows: 6, columns: 6, faceCount: 6, seconds: 150, shift: 'none' };
+    return { rows: 9, columns: 16, faceCount: 36, seconds: 420, shift: 'none' };
   }
 
   if (level === 2) {
-    return { rows: 6, columns: 8, faceCount: 8, seconds: 135, shift: 'none' };
+    return { rows: 9, columns: 16, faceCount: 36, seconds: 390, shift: 'none' };
   }
 
   if (level === 3) {
-    return { rows: 7, columns: 8, faceCount: 10, seconds: 120, shift: 'down' };
+    return { rows: 9, columns: 16, faceCount: 36, seconds: 360, shift: 'down' };
   }
 
   if (level === 4) {
-    return { rows: 8, columns: 8, faceCount: 12, seconds: 110, shift: 'left' };
+    return { rows: 9, columns: 16, faceCount: 36, seconds: 330, shift: 'left' };
   }
 
   return {
-    rows: 8,
-    columns: 10,
-    faceCount: 16,
-    seconds: Math.max(70, 105 - (level - 5) * 5),
+    rows: 9,
+    columns: 16,
+    faceCount: 36,
+    seconds: Math.max(210, 315 - (level - 5) * 15),
     shift: level % 2 === 0 ? 'left' : 'down',
   };
 }

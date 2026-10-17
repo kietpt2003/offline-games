@@ -13,14 +13,15 @@ function tile(face, id) {
 }
 
 describe('Pikachu engine', () => {
-  test('increases board difficulty over the first five levels', () => {
+  test('keeps a 16-column by 9-row board while increasing timed difficulty', () => {
     const first = getLevelConfig(1);
     const fifth = getLevelConfig(5);
 
-    expect(fifth.rows * fifth.columns).toBeGreaterThan(
-      first.rows * first.columns,
-    );
-    expect(fifth.faceCount).toBeGreaterThan(first.faceCount);
+    expect(first.rows).toBe(9);
+    expect(first.columns).toBe(16);
+    expect(fifth.rows * fifth.columns).toBe(144);
+    expect(first.faceCount).toBe(36);
+    expect(fifth.faceCount).toBe(36);
     expect(fifth.seconds).toBeLessThan(first.seconds);
     expect(fifth.shift).not.toBe('none');
   });
@@ -36,6 +37,8 @@ describe('Pikachu engine', () => {
 
     expect(countRemainingTiles(board)).toBe(config.rows * config.columns);
     expect([...counts.values()].every(count => count % 2 === 0)).toBe(true);
+    expect(counts.size).toBe(36);
+    expect([...counts.values()].every(count => count === 4)).toBe(true);
     expect(findAvailablePair(board)).not.toBeNull();
   });
 

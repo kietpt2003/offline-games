@@ -1,8 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  AppState,
   Image,
   Modal,
+  NativeModules,
   Pressable,
   StyleSheet,
   Text,
@@ -21,10 +23,14 @@ import {
   shiftBoard,
   shuffleBoard,
 } from './pikachuEngine';
+import { createPikachuAudio } from './pikachuAudio';
 
-const GAME_KEY = '@offline-games/pikachu-state-v1';
+const GAME_KEY = '@offline-games/pikachu-state-v2';
 const BEST_KEY = '@offline-games/pikachu-best-v1';
+const SOUND_KEY = '@offline-games/pikachu-sound-enabled-v1';
 const CONNECT_DELAY = 260;
+const BOARD_GUTTER_RATIO = 0.32;
+const { ScreenOrientation } = NativeModules;
 
 const TILE_IMAGES = [
   require('./assets/tile_01.png'),
@@ -43,6 +49,26 @@ const TILE_IMAGES = [
   require('./assets/tile_14.png'),
   require('./assets/tile_15.png'),
   require('./assets/tile_16.png'),
+  require('./assets/tile_17.png'),
+  require('./assets/tile_18.png'),
+  require('./assets/tile_19.png'),
+  require('./assets/tile_20.png'),
+  require('./assets/tile_21.png'),
+  require('./assets/tile_22.png'),
+  require('./assets/tile_23.png'),
+  require('./assets/tile_24.png'),
+  require('./assets/tile_25.png'),
+  require('./assets/tile_26.png'),
+  require('./assets/tile_27.png'),
+  require('./assets/tile_28.png'),
+  require('./assets/tile_29.png'),
+  require('./assets/tile_30.png'),
+  require('./assets/tile_31.png'),
+  require('./assets/tile_32.png'),
+  require('./assets/tile_33.png'),
+  require('./assets/tile_34.png'),
+  require('./assets/tile_35.png'),
+  require('./assets/tile_36.png'),
 ];
 
 function createLevel(level) {
@@ -91,23 +117,48 @@ export function PikachuScreen({ onBack }) {
   const [isHydrated, setIsHydrated] = useState(false);
   const [levelComplete, setLevelComplete] = useState(false);
   const [gameOver, setGameOver] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(true);
   const timeoutRef = useRef(null);
+  const audioRef = useRef(null);
   const config = getLevelConfig(level);
   const remainingTiles = countRemainingTiles(board);
+  const isLandscape = windowWidth > windowHeight;
   const cellSize = Math.min(
-    46,
-    Math.floor((windowWidth - 20) / (config.columns + 2)),
-    Math.floor((windowHeight - 270) / (config.rows + 2)),
+    44,
+    Math.floor((windowWidth - 220) / (config.columns + BOARD_GUTTER_RATIO * 2)),
+    Math.floor((windowHeight - 12) / (config.rows + BOARD_GUTTER_RATIO * 2)),
   );
-  const boardWidth = cellSize * (config.columns + 2);
-  const boardHeight = cellSize * (config.rows + 2);
+  const boardGutter = cellSize * BOARD_GUTTER_RATIO;
+  const boardWidth = cellSize * config.columns + boardGutter * 2;
+  const boardHeight = cellSize * config.rows + boardGutter * 2;
+  const sidePanelWidth = Math.max(84, (windowWidth - boardWidth - 36) / 2);
+  const pathSize = Math.max(5, cellSize * 0.15);
+
+  const getPathOffset = (index, count) => {
+    if (index === 0) {
+      return boardGutter / 2;
+    }
+
+    if (index === count + 1) {
+      return boardGutter + count * cellSize + boardGutter / 2;
+    }
+
+    return boardGutter + (index - 0.5) * cellSize;
+  };
+
+  useEffect(() => {
+    ScreenOrientation?.lockLandscape();
+
+    return () => ScreenOrientation?.lockPortrait();
+  }, []);
 
   useEffect(() => {
     Promise.all([
       AsyncStorage.getItem(GAME_KEY),
       AsyncStorage.getItem(BEST_KEY),
+      AsyncStorage.getItem(SOUND_KEY),
     ])
-      .then(([savedGame, savedBest]) => {
+      .then(([savedGame, savedBest, savedSoundEnabled]) => {
         if (savedBest) {
           setBestScore(Number(savedBest) || 0);
         }
@@ -129,12 +180,42 @@ export function PikachuScreen({ onBack }) {
             setMessage('Đã tiếp tục ván chơi trước');
           }
         }
+
+        if (savedSoundEnabled !== null) {
+          setSoundEnabled(savedSoundEnabled === 'true');
+        }
       })
       .catch(() => {})
       .finally(() => setIsHydrated(true));
 
     return () => clearTimeout(timeoutRef.current);
   }, []);
+
+  useEffect(() => {
+    const audio = createPikachuAudio(soundEnabled);
+    const appStateSubscription = AppState.addEventListener(
+      'change',
+      nextState => audio.setAppActive(nextState === 'active'),
+    );
+
+    audioRef.current = audio;
+
+    return () => {
+      appStateSubscription.remove();
+      audioRef.current = null;
+      audio.release();
+    };
+    // Audio is created once; later changes are handled by setEnabled.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    audioRef.current?.setEnabled(soundEnabled);
+
+    if (isHydrated) {
+      AsyncStorage.setItem(SOUND_KEY, String(soundEnabled)).catch(() => {});
+    }
+  }, [isHydrated, soundEnabled]);
 
   useEffect(() => {
     if (!isHydrated || gameOver || levelComplete || isResolving) {
@@ -207,6 +288,7 @@ export function PikachuScreen({ onBack }) {
     setHint([]);
 
     if (!selected) {
+      audioRef.current?.playSelect();
       setSelected(position);
       setMessage('Chọn hình thứ hai giống hình này');
       return;
@@ -222,6 +304,7 @@ export function PikachuScreen({ onBack }) {
     const secondTile = board[position.row][position.column];
 
     if (!firstTile || firstTile.face !== secondTile.face) {
+      audioRef.current?.playError();
       setSelected(position);
       setMessage('Hai hình chưa giống nhau');
       return;
@@ -230,12 +313,14 @@ export function PikachuScreen({ onBack }) {
     const path = findConnectionPath(board, selected, position);
 
     if (!path) {
+      audioRef.current?.playError();
       setSelected(position);
       setMessage('Không thể nối bằng đường tối đa 2 lần rẽ');
       return;
     }
 
     setIsResolving(true);
+    audioRef.current?.playSuccess();
     setConnectionPath(path);
     setMessage('Nối thành công!');
 
@@ -264,6 +349,7 @@ export function PikachuScreen({ onBack }) {
   };
 
   const handleHint = () => {
+    audioRef.current?.playSelect();
     const pair = findAvailablePair(board);
 
     if (!pair) {
@@ -279,10 +365,15 @@ export function PikachuScreen({ onBack }) {
   };
 
   const handleShuffle = () => {
+    audioRef.current?.playSelect();
     setBoard(currentBoard => shuffleBoard(currentBoard));
     setScore(currentScore => Math.max(0, currentScore - 50));
     resetSelection();
     setMessage('Đã xáo bàn • -50 điểm');
+  };
+
+  const toggleSound = () => {
+    setSoundEnabled(currentValue => !currentValue);
   };
 
   const isPositionIn = (positions, row, column) =>
@@ -290,53 +381,111 @@ export function PikachuScreen({ onBack }) {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <IconButton
-            label="Quay lại danh sách game"
-            icon="‹"
-            onPress={onBack}
-          />
-          <View style={styles.titleGroup}>
-            <Text style={styles.title}>NỐI HÌNH</Text>
-            <Text style={styles.subtitle}>
-              CẤP {level} • {config.faceCount} LOẠI
-            </Text>
+      <View
+        style={[
+          styles.container,
+          isLandscape ? styles.landscapeContainer : null,
+        ]}
+      >
+        <View
+          style={[
+            styles.sidePanel,
+            isLandscape ? { width: sidePanelWidth } : null,
+          ]}
+        >
+          <View style={styles.header}>
+            <IconButton
+              label="Quay lại danh sách game"
+              icon="‹"
+              onPress={onBack}
+            />
+            <View style={styles.titleGroup}>
+              <Text style={styles.title}>NỐI HÌNH</Text>
+              <Text style={styles.subtitle}>
+                CẤP {level} • {config.faceCount} LOẠI
+              </Text>
+            </View>
+            <View style={styles.headerActions}>
+              <IconButton
+                label={soundEnabled ? 'Tắt âm thanh' : 'Bật âm thanh'}
+                icon={soundEnabled ? '♪' : '—'}
+                onPress={toggleSound}
+              />
+              <IconButton
+                label="Chơi ván mới"
+                icon="↻"
+                onPress={startNewGame}
+              />
+            </View>
           </View>
-          <IconButton label="Chơi ván mới" icon="↻" onPress={startNewGame} />
-        </View>
 
-        <View style={styles.statsCard}>
-          <View style={styles.statItem}>
-            <Text style={styles.statLabel}>ĐIỂM</Text>
-            <Text style={styles.statValue}>{score}</Text>
+          <View style={styles.statsCard}>
+            <View style={styles.statItem}>
+              <Text style={styles.statLabel}>ĐIỂM</Text>
+              <Text style={styles.statValue}>{score}</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={styles.statLabel}>THỜI GIAN</Text>
+              <Text
+                style={[
+                  styles.statValue,
+                  timeLeft <= 20 ? styles.dangerText : null,
+                ]}
+              >
+                {formatTime(timeLeft)}
+              </Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={styles.statLabel}>KỶ LỤC</Text>
+              <Text style={styles.statValue}>{bestScore}</Text>
+            </View>
           </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statLabel}>THỜI GIAN</Text>
-            <Text
-              style={[
-                styles.statValue,
-                timeLeft <= 20 ? styles.dangerText : null,
+
+          <Text numberOfLines={1} style={styles.message}>
+            {message}
+          </Text>
+
+          <View style={styles.footer}>
+            <Pressable
+              onPress={handleHint}
+              style={({ pressed }) => [
+                styles.actionButton,
+                pressed ? styles.buttonPressed : null,
               ]}
             >
-              {formatTime(timeLeft)}
-            </Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statLabel}>KỶ LỤC</Text>
-            <Text style={styles.statValue}>{bestScore}</Text>
+              <Text style={styles.actionIcon}>✦</Text>
+              <Text style={styles.actionText}>Gợi ý</Text>
+            </Pressable>
+            <View style={styles.remainingBadge}>
+              <Text style={styles.remainingValue}>{remainingTiles / 2}</Text>
+              <Text style={styles.remainingLabel}>CẶP</Text>
+            </View>
+            <Pressable
+              onPress={handleShuffle}
+              style={({ pressed }) => [
+                styles.actionButton,
+                pressed ? styles.buttonPressed : null,
+              ]}
+            >
+              <Text style={styles.actionIcon}>⤨</Text>
+              <Text style={styles.actionText}>Xáo</Text>
+            </Pressable>
           </View>
         </View>
-
-        <Text numberOfLines={1} style={styles.message}>
-          {message}
-        </Text>
 
         <View
           accessibilityLabel={`Bàn nối hình còn ${remainingTiles} ô`}
-          style={[styles.board, { width: boardWidth, height: boardHeight }]}
+          style={[
+            styles.board,
+            {
+              width: boardWidth,
+              height: boardHeight,
+              marginLeft: -boardWidth / 2,
+              marginTop: -boardHeight / 2,
+            },
+          ]}
         >
           {connectionPath.map((point, index) => (
             <View
@@ -344,11 +493,12 @@ export function PikachuScreen({ onBack }) {
               style={[
                 styles.pathPoint,
                 {
-                  width: Math.max(5, cellSize * 0.17),
-                  height: Math.max(5, cellSize * 0.17),
+                  height: pathSize,
+                  width: pathSize,
                   borderRadius: cellSize,
-                  left: point.column * cellSize + cellSize * 0.415,
-                  top: point.row * cellSize + cellSize * 0.415,
+                  left:
+                    getPathOffset(point.column, config.columns) - pathSize / 2,
+                  top: getPathOffset(point.row, config.rows) - pathSize / 2,
                 },
               ]}
             />
@@ -376,11 +526,11 @@ export function PikachuScreen({ onBack }) {
                   style={({ pressed }) => [
                     styles.tile,
                     {
-                      width: cellSize - 3,
-                      height: cellSize - 3,
-                      left: (columnIndex + 1) * cellSize + 1.5,
-                      top: (rowIndex + 1) * cellSize + 1.5,
-                      borderRadius: Math.max(7, cellSize * 0.22),
+                      width: cellSize - 1,
+                      height: cellSize - 1,
+                      left: boardGutter + columnIndex * cellSize + 0.5,
+                      top: boardGutter + rowIndex * cellSize + 0.5,
+                      borderRadius: Math.max(5, cellSize * 0.15),
                     },
                     isSelected ? styles.selectedTile : null,
                     isHinted ? styles.hintedTile : null,
@@ -396,33 +546,6 @@ export function PikachuScreen({ onBack }) {
               );
             }),
           )}
-        </View>
-
-        <View style={styles.footer}>
-          <Pressable
-            onPress={handleHint}
-            style={({ pressed }) => [
-              styles.actionButton,
-              pressed ? styles.buttonPressed : null,
-            ]}
-          >
-            <Text style={styles.actionIcon}>✦</Text>
-            <Text style={styles.actionText}>Gợi ý (-20)</Text>
-          </Pressable>
-          <View style={styles.remainingBadge}>
-            <Text style={styles.remainingValue}>{remainingTiles / 2}</Text>
-            <Text style={styles.remainingLabel}>CẶP CÒN LẠI</Text>
-          </View>
-          <Pressable
-            onPress={handleShuffle}
-            style={({ pressed }) => [
-              styles.actionButton,
-              pressed ? styles.buttonPressed : null,
-            ]}
-          >
-            <Text style={styles.actionIcon}>⤨</Text>
-            <Text style={styles.actionText}>Xáo (-50)</Text>
-          </Pressable>
         </View>
       </View>
 
@@ -469,34 +592,51 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     alignItems: 'center',
-    paddingHorizontal: 10,
+    justifyContent: 'center',
+    padding: 8,
     backgroundColor: '#123C3A',
+  },
+  landscapeContainer: {
+    position: 'relative',
+  },
+  sidePanel: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    justifyContent: 'center',
   },
   header: {
     width: '100%',
-    height: 58,
+    height: 78,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     justifyContent: 'space-between',
   },
-  titleGroup: { alignItems: 'center' },
+  titleGroup: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
   title: {
     color: '#FFF8D7',
-    fontSize: 20,
+    fontSize: 17,
     fontWeight: '900',
     letterSpacing: 1.5,
   },
   subtitle: {
     marginTop: 2,
     color: '#8ED9C5',
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '800',
     letterSpacing: 1,
   },
   iconButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
+    width: 34,
+    height: 34,
+    borderRadius: 11,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#FFFFFF18',
@@ -505,46 +645,57 @@ const styles = StyleSheet.create({
   },
   iconButtonText: {
     color: '#FFF8D7',
-    fontSize: 28,
-    lineHeight: 31,
+    fontSize: 22,
+    lineHeight: 25,
     fontWeight: '700',
   },
+  headerActions: { flexDirection: 'row', gap: 6 },
   disabledButton: { opacity: 0.35 },
   buttonPressed: { opacity: 0.7, transform: [{ scale: 0.96 }] },
   statsCard: {
     width: '100%',
-    height: 58,
-    flexDirection: 'row',
+    height: 94,
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 5,
     borderRadius: 17,
     backgroundColor: '#0C302F',
     borderWidth: 1,
     borderColor: '#2B625D',
   },
-  statItem: { flex: 1, alignItems: 'center' },
+  statItem: {
+    width: '100%',
+    flex: 1,
+    paddingHorizontal: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   statLabel: {
     color: '#7EB8AE',
-    fontSize: 9,
+    fontSize: 7,
     fontWeight: '800',
     letterSpacing: 1,
   },
   statValue: {
-    marginTop: 3,
     color: '#FFFFFF',
-    fontSize: 17,
+    fontSize: 14,
     fontWeight: '900',
   },
-  statDivider: { width: 1, height: 28, backgroundColor: '#FFFFFF18' },
+  statDivider: { width: '82%', height: 1, backgroundColor: '#FFFFFF18' },
   dangerText: { color: '#FF8278' },
   message: {
-    height: 31,
-    paddingTop: 8,
+    height: 38,
+    paddingTop: 9,
     color: '#C5E8DF',
-    fontSize: 12,
+    fontSize: 9,
     fontWeight: '700',
+    textAlign: 'center',
   },
   board: {
-    position: 'relative',
+    position: 'absolute',
+    left: '50%',
+    top: '50%',
     overflow: 'visible',
     borderRadius: 20,
     backgroundColor: '#0A302D',
@@ -553,12 +704,12 @@ const styles = StyleSheet.create({
   },
   tile: {
     position: 'absolute',
-    padding: 2,
+    padding: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFCEB',
-    borderWidth: 2,
-    borderColor: '#D8EADD',
+    backgroundColor: '#F5DFC2',
+    borderWidth: 1,
+    borderColor: '#E4C39A',
     shadowColor: '#001C18',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
@@ -588,27 +739,26 @@ const styles = StyleSheet.create({
   },
   footer: {
     width: '100%',
-    marginTop: 12,
-    flexDirection: 'row',
+    marginTop: 4,
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 5,
   },
   actionButton: {
-    width: 103,
-    height: 50,
+    width: '100%',
+    height: 36,
     flexDirection: 'row',
-    gap: 6,
+    gap: 4,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 15,
+    borderRadius: 12,
     backgroundColor: '#FFFFFF18',
     borderWidth: 1,
     borderColor: '#FFFFFF24',
   },
   actionIcon: { color: '#FFE35B', fontSize: 18, fontWeight: '900' },
-  actionText: { color: '#E6F5F0', fontSize: 11, fontWeight: '800' },
-  remainingBadge: { alignItems: 'center' },
-  remainingValue: { color: '#FFFFFF', fontSize: 21, fontWeight: '900' },
+  actionText: { color: '#E6F5F0', fontSize: 10, fontWeight: '800' },
+  remainingBadge: { height: 32, alignItems: 'center' },
+  remainingValue: { color: '#FFFFFF', fontSize: 17, fontWeight: '900' },
   remainingLabel: {
     color: '#7EB8AE',
     fontSize: 8,
