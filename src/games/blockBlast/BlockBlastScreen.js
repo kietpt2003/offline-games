@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
@@ -12,6 +13,14 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import {
+  IconBlocks,
+  IconChevronLeft,
+  IconMuted,
+  IconRestart,
+  IconUndo,
+  IconVolume,
+} from '../../icons';
 import {
   BOARD_SIZE,
   canPieceFit,
@@ -37,6 +46,7 @@ const PIECE_CELL_SIZE = 17;
 const PIECE_CELL_GAP = 3;
 const DRAG_LIFT_OFFSET = 80;
 const INVALID_PREVIEW_COLOR = '#717A96';
+const SOUND_KEY = '@offline-games/block-blast-sound-enabled-v1';
 
 function PiecePreview({ piece }) {
   if (!piece) {
@@ -219,18 +229,15 @@ export function BlockBlastScreen({ onBack }) {
   const [dragPreview, setDragPreview] = useState(null);
   const [undoHistory, setUndoHistory] = useState([]);
   const [isHydrated, setIsHydrated] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [isSoundHydrated, setIsSoundHydrated] = useState(false);
 
   useEffect(() => {
-    const audio = createBlockBlastAudio();
+    const audio = createBlockBlastAudio(false);
+    audio.setAppActive(AppState.currentState === 'active');
     const appStateSubscription = AppState.addEventListener(
       'change',
-      nextState => {
-        if (nextState === 'active') {
-          audio.resumeBackground();
-        } else {
-          audio.pauseBackground();
-        }
-      },
+      nextState => audio.setAppActive(nextState === 'active'),
     );
 
     audioRef.current = audio;
@@ -241,6 +248,36 @@ export function BlockBlastScreen({ onBack }) {
       audio.release();
     };
   }, []);
+
+  useEffect(() => {
+    let isActive = true;
+
+    AsyncStorage.getItem(SOUND_KEY)
+      .then(savedSoundEnabled => {
+        if (isActive && savedSoundEnabled !== null) {
+          setSoundEnabled(savedSoundEnabled === 'true');
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (isActive) {
+          setIsSoundHydrated(true);
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isSoundHydrated) {
+      return;
+    }
+
+    audioRef.current?.setEnabled(soundEnabled);
+    AsyncStorage.setItem(SOUND_KEY, String(soundEnabled)).catch(() => {});
+  }, [isSoundHydrated, soundEnabled]);
 
   useEffect(() => {
     let isActive = true;
@@ -374,6 +411,10 @@ export function BlockBlastScreen({ onBack }) {
     setIsGameOver(false);
     setUndoHistory([]);
     clearDragPreview();
+  };
+
+  const toggleSound = () => {
+    setSoundEnabled(currentValue => !currentValue);
   };
 
   const handleUndo = () => {
@@ -544,7 +585,26 @@ export function BlockBlastScreen({ onBack }) {
                 pressed ? styles.buttonPressed : null,
               ]}
             >
-              <Text style={styles.backIcon}>‹</Text>
+              <IconChevronLeft width={27} height={27} color="#FFFFFF" />
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={soundEnabled ? 'Tắt âm thanh' : 'Bật âm thanh'}
+              accessibilityState={{ disabled: !isSoundHydrated }}
+              disabled={!isSoundHydrated}
+              hitSlop={6}
+              onPress={toggleSound}
+              style={({ pressed }) => [
+                styles.headerButton,
+                !isSoundHydrated ? styles.disabledHeaderButton : null,
+                pressed ? styles.buttonPressed : null,
+              ]}
+            >
+              {soundEnabled ? (
+                <IconVolume width={22} height={22} color="#FFFFFF" />
+              ) : (
+                <IconMuted width={22} height={22} color="#FFFFFF" />
+              )}
             </Pressable>
           </View>
 
@@ -567,7 +627,7 @@ export function BlockBlastScreen({ onBack }) {
                 pressed ? styles.buttonPressed : null,
               ]}
             >
-              <Text style={styles.undoIcon}>↶</Text>
+              <IconUndo width={23} height={23} color="#FFFFFF" />
             </Pressable>
             <Pressable
               accessibilityRole="button"
@@ -579,7 +639,7 @@ export function BlockBlastScreen({ onBack }) {
                 pressed ? styles.buttonPressed : null,
               ]}
             >
-              <Text style={styles.restartIcon}>↻</Text>
+              <IconRestart width={24} height={24} color="#FFFFFF" />
             </Pressable>
           </View>
         </View>
@@ -671,7 +731,7 @@ export function BlockBlastScreen({ onBack }) {
         <View style={styles.modalBackdrop}>
           <View style={styles.gameOverCard}>
             <View style={styles.gameOverIcon}>
-              <Text style={styles.gameOverIconText}>◆</Text>
+              <IconBlocks width={28} height={28} color="#292D4C" />
             </View>
             <Text style={styles.gameOverTitle}>Hết nước đi!</Text>
             <Text style={styles.gameOverScore}>Bạn đạt {score} điểm</Text>
@@ -686,7 +746,8 @@ export function BlockBlastScreen({ onBack }) {
                 pressed ? styles.buttonPressed : null,
               ]}
             >
-              <Text style={styles.undoGameOverText}>↶ HOÀN TÁC</Text>
+              <IconUndo width={20} height={20} color="#FFFFFF" />
+              <Text style={styles.undoGameOverText}>HOÀN TÁC</Text>
             </Pressable>
             <Pressable
               accessibilityRole="button"
@@ -766,22 +827,6 @@ const styles = StyleSheet.create({
   buttonPressed: {
     opacity: 0.7,
     transform: [{ scale: 0.96 }],
-  },
-  backIcon: {
-    marginTop: -4,
-    color: '#FFFFFF',
-    fontSize: 38,
-    lineHeight: 40,
-  },
-  restartIcon: {
-    color: '#FFFFFF',
-    fontSize: 25,
-    lineHeight: 28,
-  },
-  undoIcon: {
-    color: '#FFFFFF',
-    fontSize: 24,
-    lineHeight: 27,
   },
   titleGroup: {
     alignItems: 'center',
@@ -954,10 +999,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: '#FFD447',
   },
-  gameOverIconText: {
-    color: '#292D4C',
-    fontSize: 28,
-  },
   gameOverTitle: {
     marginTop: 18,
     color: '#FFFFFF',
@@ -983,8 +1024,10 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 48,
     marginTop: 24,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 8,
     borderRadius: 16,
     backgroundColor: '#313758',
     borderWidth: 1,

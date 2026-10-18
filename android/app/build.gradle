@@ -72,6 +72,20 @@ def enableProguardInReleaseBuilds = false
  */
 def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
 
+// Local credentials are excluded from source control. CI may supply environment variables.
+def releaseSigningProperties = new Properties()
+def releaseSigningPropertiesFile = rootProject.file('keystore.properties')
+if (releaseSigningPropertiesFile.exists()) {
+    releaseSigningPropertiesFile.withInputStream { releaseSigningProperties.load(it) }
+}
+def releaseSigningValue = { name ->
+    System.getenv("OFFLINE_GAMES_RELEASE_${name}") ?: releaseSigningProperties.getProperty(name)
+}
+def releaseStoreFile = releaseSigningValue('STORE_FILE')
+def releaseStorePassword = releaseSigningValue('STORE_PASSWORD')
+def releaseKeyAlias = releaseSigningValue('KEY_ALIAS')
+def releaseKeyPassword = releaseSigningValue('KEY_PASSWORD')
+
 android {
     ndkVersion rootProject.ext.ndkVersion
     buildToolsVersion rootProject.ext.buildToolsVersion
@@ -83,7 +97,7 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
-        versionName "1.0"
+        versionName "0.0.1"
     }
     signingConfigs {
         debug {
@@ -92,18 +106,40 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        release {
+            if (releaseStoreFile) {
+                storeFile rootProject.file(releaseStoreFile)
+            }
+            storePassword releaseStorePassword
+            keyAlias releaseKeyAlias
+            keyPassword releaseKeyPassword
+        }
     }
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
         }
         release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            signingConfig signingConfigs.release
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }
+    }
+}
+
+def validateReleaseSigningInputs = tasks.register('validateReleaseSigningInputs') {
+    doLast {
+        if (![releaseStoreFile, releaseStorePassword, releaseKeyAlias, releaseKeyPassword].every { it }) {
+            throw new GradleException('Missing release signing credentials. Configure android/keystore.properties using keystore.properties.example, or OFFLINE_GAMES_RELEASE_* environment variables.')
+        }
+        if (!rootProject.file(releaseStoreFile).isFile()) {
+            throw new GradleException('Release keystore file does not exist. Restore the keystore referenced by STORE_FILE.')
+        }
+    }
+}
+tasks.configureEach { task ->
+    if (task.name in ['validateSigningRelease', 'packageRelease', 'signReleaseBundle']) {
+        task.dependsOn(validateReleaseSigningInputs)
     }
 }
 

@@ -14,6 +14,16 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
+  IconChevronLeft,
+  IconClock,
+  IconHint,
+  IconMuted,
+  IconRestart,
+  IconShuffle,
+  IconTrophy,
+  IconVolume,
+} from '../../icons';
+import {
   countRemainingTiles,
   createBoard,
   findAvailablePair,
@@ -82,6 +92,8 @@ function formatTime(seconds) {
 }
 
 function IconButton({ label, icon, disabled = false, onPress }) {
+  const Icon = icon;
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -96,7 +108,7 @@ function IconButton({ label, icon, disabled = false, onPress }) {
         pressed ? styles.buttonPressed : null,
       ]}
     >
-      <Text style={styles.iconButtonText}>{icon}</Text>
+      <Icon width={21} height={21} color="#FFF8D7" />
     </Pressable>
   );
 }
@@ -396,7 +408,7 @@ export function PikachuScreen({ onBack }) {
           <View style={styles.header}>
             <IconButton
               label="Quay lại danh sách game"
-              icon="‹"
+              icon={IconChevronLeft}
               onPress={onBack}
             />
             <View style={styles.titleGroup}>
@@ -408,12 +420,12 @@ export function PikachuScreen({ onBack }) {
             <View style={styles.headerActions}>
               <IconButton
                 label={soundEnabled ? 'Tắt âm thanh' : 'Bật âm thanh'}
-                icon={soundEnabled ? '♪' : '—'}
+                icon={soundEnabled ? IconVolume : IconMuted}
                 onPress={toggleSound}
               />
               <IconButton
                 label="Chơi ván mới"
-                icon="↻"
+                icon={IconRestart}
                 onPress={startNewGame}
               />
             </View>
@@ -455,7 +467,7 @@ export function PikachuScreen({ onBack }) {
                 pressed ? styles.buttonPressed : null,
               ]}
             >
-              <Text style={styles.actionIcon}>✦</Text>
+              <IconHint width={18} height={18} color="#FFE35B" />
               <Text style={styles.actionText}>Gợi ý</Text>
             </Pressable>
             <View style={styles.remainingBadge}>
@@ -469,7 +481,7 @@ export function PikachuScreen({ onBack }) {
                 pressed ? styles.buttonPressed : null,
               ]}
             >
-              <Text style={styles.actionIcon}>⤨</Text>
+              <IconShuffle width={18} height={18} color="#FFE35B" />
               <Text style={styles.actionText}>Xáo</Text>
             </Pressable>
           </View>
@@ -487,22 +499,37 @@ export function PikachuScreen({ onBack }) {
             },
           ]}
         >
-          {connectionPath.map((point, index) => (
-            <View
-              key={`${point.row}-${point.column}-${index}`}
-              style={[
-                styles.pathPoint,
-                {
-                  height: pathSize,
-                  width: pathSize,
-                  borderRadius: cellSize,
-                  left:
-                    getPathOffset(point.column, config.columns) - pathSize / 2,
-                  top: getPathOffset(point.row, config.rows) - pathSize / 2,
-                },
-              ]}
-            />
-          ))}
+          {connectionPath.slice(1).map((point, index) => {
+            const previousPoint = connectionPath[index];
+            const startX = getPathOffset(
+              previousPoint.column,
+              config.columns,
+            );
+            const startY = getPathOffset(previousPoint.row, config.rows);
+            const endX = getPathOffset(point.column, config.columns);
+            const endY = getPathOffset(point.row, config.rows);
+            const isHorizontal = startY === endY;
+
+            return (
+              <View
+                key={`${point.row}-${point.column}-${index}`}
+                style={[
+                  styles.pathSegment,
+                  {
+                    left: Math.min(startX, endX) - pathSize / 2,
+                    top: Math.min(startY, endY) - pathSize / 2,
+                    width: isHorizontal
+                      ? Math.abs(endX - startX) + pathSize
+                      : pathSize,
+                    height: isHorizontal
+                      ? pathSize
+                      : Math.abs(endY - startY) + pathSize,
+                    borderRadius: pathSize / 2,
+                  },
+                ]}
+              />
+            );
+          })}
 
           {board.map((row, rowIndex) =>
             row.map((tile, columnIndex) => {
@@ -556,7 +583,11 @@ export function PikachuScreen({ onBack }) {
       >
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalEmoji}>{levelComplete ? '🏆' : '⏰'}</Text>
+            {levelComplete ? (
+              <IconTrophy width={52} height={52} color="#20AD82" />
+            ) : (
+              <IconClock width={52} height={52} color="#E86D62" />
+            )}
             <Text style={styles.modalTitle}>
               {levelComplete ? `Qua cấp ${level}!` : 'Hết thời gian'}
             </Text>
@@ -643,12 +674,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#FFFFFF24',
   },
-  iconButtonText: {
-    color: '#FFF8D7',
-    fontSize: 22,
-    lineHeight: 25,
-    fontWeight: '700',
-  },
   headerActions: { flexDirection: 'row', gap: 6 },
   disabledButton: { opacity: 0.35 },
   buttonPressed: { opacity: 0.7, transform: [{ scale: 0.96 }] },
@@ -730,12 +755,10 @@ const styles = StyleSheet.create({
     zIndex: 9,
   },
   pressedTile: { opacity: 0.72, transform: [{ scale: 0.94 }] },
-  pathPoint: {
+  pathSegment: {
     position: 'absolute',
     zIndex: 20,
     backgroundColor: '#FFE35B',
-    borderWidth: 1,
-    borderColor: '#FFFFFF',
   },
   footer: {
     width: '100%',
@@ -755,7 +778,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#FFFFFF24',
   },
-  actionIcon: { color: '#FFE35B', fontSize: 18, fontWeight: '900' },
   actionText: { color: '#E6F5F0', fontSize: 10, fontWeight: '800' },
   remainingBadge: { height: 32, alignItems: 'center' },
   remainingValue: { color: '#FFFFFF', fontSize: 17, fontWeight: '900' },
@@ -780,7 +802,6 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     backgroundColor: '#FFFDF2',
   },
-  modalEmoji: { fontSize: 52 },
   modalTitle: {
     marginTop: 8,
     color: '#153E3B',

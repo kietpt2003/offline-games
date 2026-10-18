@@ -2,6 +2,7 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { GameArtwork } from './GameArtwork';
+import { IconPlay } from '../icons';
 
 export function GameCard({ game, onPress }) {
   return (
@@ -35,7 +36,7 @@ export function GameCard({ game, onPress }) {
         </View>
 
         <View style={styles.playButton}>
-          <Text style={styles.playIcon}>▶</Text>
+          <IconPlay width={13} height={13} color="#343A52" />
         </View>
       </View>
     </Pressable>
@@ -102,10 +103,5 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  playIcon: {
-    marginLeft: 2,
-    color: '#343A52',
-    fontSize: 11,
   },
 });

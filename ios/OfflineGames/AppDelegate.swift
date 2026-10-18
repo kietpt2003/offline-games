@@ -26,6 +26,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     factory.startReactNative(
       withModuleName: "OfflineGames",
       in: window,
+      initialProperties: [
+        "appVersion": Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
+      ],
       launchOptions: launchOptions
     )
 

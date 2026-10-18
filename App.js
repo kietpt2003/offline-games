@@ -2,7 +2,7 @@
  * @format
  */
 
-import React, { useState } from 'react';
+import React from 'react';
 import { StatusBar } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -11,8 +11,8 @@ import { MahjongScreen } from './src/games/mahjong/MahjongScreen';
 import { PikachuScreen } from './src/games/pikachu/PikachuScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
 
-function App() {
-  const [activeGame, setActiveGame] = useState(null);
+function App({ appVersion }) {
+  const [activeGame, setActiveGame] = React.useState(null);
   const isPlayingBlockBlast = activeGame === 'block-blast';
   const isPlayingMahjong = activeGame === 'mahjong';
   const isPlayingPikachu = activeGame === 'pikachu';
@@ -38,7 +38,7 @@ function App() {
       ) : isPlayingPikachu ? (
         <PikachuScreen onBack={() => setActiveGame(null)} />
       ) : (
-        <HomeScreen onOpenGame={setActiveGame} />
+        <HomeScreen appVersion={appVersion} onOpenGame={setActiveGame} />
       )}
     </SafeAreaProvider>
   );

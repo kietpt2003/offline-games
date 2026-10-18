@@ -95,3 +95,42 @@ To learn more about React Native, take a look at the following resources:
 - [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
 - [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
 - [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+
+## Build APK release
+
+Tạo keystore một lần và sao lưu an toàn để có thể phát hành các bản cập nhật sau này:
+
+```sh
+keytool -genkeypair -v \
+  -storetype PKCS12 \
+  -keystore android/app/offlinegames-release.keystore \
+  -alias offlinegames-release \
+  -keyalg RSA \
+  -keysize 3072 \
+  -validity 10000
+```
+
+Tạo file cấu hình local và điền mật khẩu thật. File này đã được git-ignore:
+
+```sh
+cp android/keystore.properties.example android/keystore.properties
+```
+
+Build APK release đã ký:
+
+```sh
+npm run android-release
+```
+
+APK đầu ra nằm tại `android/app/build/outputs/apk/release/app-release.apk`.
+Trước mỗi lần phát hành bản cập nhật, tăng `versionCode` trong
+`android/app/build.gradle`.
+
+CI có thể dùng các biến môi trường thay cho file properties:
+
+- `OFFLINE_GAMES_RELEASE_STORE_FILE`
+- `OFFLINE_GAMES_RELEASE_STORE_PASSWORD`
+- `OFFLINE_GAMES_RELEASE_KEY_ALIAS`
+- `OFFLINE_GAMES_RELEASE_KEY_PASSWORD`
+
+Không dùng debug keystore để ký bản release và không commit keystore hoặc mật khẩu.

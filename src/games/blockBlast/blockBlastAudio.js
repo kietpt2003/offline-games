@@ -5,9 +5,9 @@ const SOUND_FILES = {
   clear: 'block_clear.wav',
   place: 'block_place.wav',
   praise: {
-    1: 'block_voice_gioi_qua.wav',
-    2: 'block_voice_tuyet_voi.wav',
-    3: 'block_voice_that_kho_tin.wav',
+    1: 'success_1.mp3',
+    2: 'success_2.mp3',
+    3: 'success_3.mp3',
   },
 };
 
@@ -34,19 +34,19 @@ function replaySound(sound) {
   sound.stop(() => sound.play());
 }
 
-export function createBlockBlastAudio() {
+export function createBlockBlastAudio(initiallyEnabled = true) {
   Sound.setCategory('Playback');
 
+  let enabled = initiallyEnabled;
+  let isActive = true;
   let isReleased = false;
-  let shouldPlayBackground = true;
   let activeVoice = null;
-  const background = loadSound(SOUND_FILES.background, 0.14, sound => {
-    if (isReleased || !shouldPlayBackground) {
-      return;
-    }
-
+  const background = loadSound(SOUND_FILES.background, 0.44, sound => {
     sound.setNumberOfLoops(-1);
-    sound.play();
+
+    if (enabled && isActive && !isReleased) {
+      sound.play();
+    }
   });
   const place = loadSound(SOUND_FILES.place, 0.42);
   const clear = loadSound(SOUND_FILES.clear, 0.55);
@@ -57,16 +57,34 @@ export function createBlockBlastAudio() {
     ]),
   );
   const allSounds = [background, place, clear, ...Object.values(praise)];
+  const effectSounds = [place, clear, ...Object.values(praise)];
+
+  const syncBackground = () => {
+    if (isReleased || !background.isLoaded()) {
+      return;
+    }
+
+    if (enabled && isActive) {
+      background.play();
+    } else {
+      background.pause();
+    }
+  };
+
+  const stopEffects = () => {
+    activeVoice = null;
+    effectSounds.forEach(sound => sound.stop());
+  };
 
   return {
     playPlacement() {
-      if (!isReleased) {
+      if (enabled && isActive && !isReleased) {
         replaySound(place);
       }
     },
 
     playLineClear() {
-      if (!isReleased) {
+      if (enabled && isActive && !isReleased) {
         replaySound(clear);
       }
     },
@@ -74,7 +92,7 @@ export function createBlockBlastAudio() {
     playPraise(level) {
       const voice = praise[Math.min(3, Math.max(1, level))];
 
-      if (isReleased || !voice?.isLoaded()) {
+      if (!enabled || !isActive || isReleased || !voice?.isLoaded()) {
         return;
       }
 
@@ -92,22 +110,29 @@ export function createBlockBlastAudio() {
       });
     },
 
-    pauseBackground() {
-      shouldPlayBackground = false;
-      background.pause();
+    setEnabled(nextEnabled) {
+      enabled = nextEnabled;
+
+      if (!enabled) {
+        stopEffects();
+      }
+
+      syncBackground();
     },
 
-    resumeBackground() {
-      shouldPlayBackground = true;
+    setAppActive(nextIsActive) {
+      isActive = nextIsActive;
 
-      if (!isReleased && background.isLoaded()) {
-        background.play();
+      if (!isActive) {
+        stopEffects();
       }
+
+      syncBackground();
     },
 
     release() {
       isReleased = true;
-      shouldPlayBackground = false;
+      enabled = false;
       activeVoice = null;
       allSounds.forEach(sound => {
         sound.stop();

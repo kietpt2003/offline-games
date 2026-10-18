@@ -1,5 +1,7 @@
-import React, { useMemo, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  AppState,
   Modal,
   Pressable,
   StyleSheet,
@@ -10,16 +12,30 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
+  IconChevronLeft,
+  IconHint,
+  IconMuted,
+  IconRestart,
+  IconShuffle,
+  IconTrophy,
+  IconUndo,
+  IconVolume,
+} from '../../icons';
+import {
   createMahjongBoard,
   findAvailablePair,
   getFreeTiles,
   removePair,
   shuffleRemainingTiles,
 } from './mahjongEngine';
+import { createMahjongAudio } from './mahjongAudio';
 
 const MAX_UNDO_STEPS = 20;
+const SOUND_KEY = '@offline-games/mahjong-sound-enabled-v1';
 
 function IconButton({ label, icon, disabled = false, onPress }) {
+  const Icon = icon;
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -34,13 +50,14 @@ function IconButton({ label, icon, disabled = false, onPress }) {
         pressed ? styles.buttonPressed : null,
       ]}
     >
-      <Text style={styles.iconButtonText}>{icon}</Text>
+      <Icon width={24} height={24} color="#FFF8E8" />
     </Pressable>
   );
 }
 
 export function MahjongScreen({ onBack }) {
   const { width: windowWidth } = useWindowDimensions();
+  const audioRef = useRef(null);
   const [tiles, setTiles] = useState(() => createMahjongBoard());
   const [selectedId, setSelectedId] = useState(null);
   const [hintIds, setHintIds] = useState([]);
@@ -49,6 +66,8 @@ export function MahjongScreen({ onBack }) {
   const [history, setHistory] = useState([]);
   const [message, setMessage] = useState('Chọn hai quân giống nhau đang mở');
   const [hasWon, setHasWon] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [isSoundHydrated, setIsSoundHydrated] = useState(false);
 
   const tileWidth = Math.min(43, Math.floor((windowWidth - 34) / 8));
   const tileHeight = Math.round(tileWidth * 1.28);
@@ -73,6 +92,53 @@ export function MahjongScreen({ onBack }) {
   );
   const remainingPairs = activeTiles.length / 2;
 
+  useEffect(() => {
+    const audio = createMahjongAudio(false);
+    audio.setAppActive(AppState.currentState === 'active');
+    const appStateSubscription = AppState.addEventListener(
+      'change',
+      nextState => audio.setAppActive(nextState === 'active'),
+    );
+
+    audioRef.current = audio;
+
+    return () => {
+      appStateSubscription.remove();
+      audioRef.current = null;
+      audio.release();
+    };
+  }, []);
+
+  useEffect(() => {
+    let isActive = true;
+
+    AsyncStorage.getItem(SOUND_KEY)
+      .then(savedSoundEnabled => {
+        if (isActive && savedSoundEnabled !== null) {
+          setSoundEnabled(savedSoundEnabled === 'true');
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (isActive) {
+          setIsSoundHydrated(true);
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isSoundHydrated) {
+      return;
+    }
+
+    audioRef.current?.setEnabled(soundEnabled);
+    AsyncStorage.setItem(SOUND_KEY, String(soundEnabled)).catch(() => {});
+  }, [isSoundHydrated, soundEnabled]);
+
   const saveHistory = () => {
     const snapshot = { tiles, score, matchedPairs };
 
@@ -82,6 +148,7 @@ export function MahjongScreen({ onBack }) {
   };
 
   const startNewGame = () => {
+    audioRef.current?.playShuffle();
     setTiles(createMahjongBoard());
     setSelectedId(null);
     setHintIds([]);
@@ -99,6 +166,7 @@ export function MahjongScreen({ onBack }) {
       return;
     }
 
+    audioRef.current?.playSelect();
     setTiles(snapshot.tiles);
     setScore(snapshot.score);
     setMatchedPairs(snapshot.matchedPairs);
@@ -117,12 +185,14 @@ export function MahjongScreen({ onBack }) {
     setHintIds([]);
 
     if (!selectedId) {
+      audioRef.current?.playSelect();
       setSelectedId(tile.id);
       setMessage('Chọn thêm một quân giống như vậy');
       return;
     }
 
     if (selectedId === tile.id) {
+      audioRef.current?.playSelect();
       setSelectedId(null);
       setMessage('Đã bỏ chọn quân bài');
       return;
@@ -131,6 +201,7 @@ export function MahjongScreen({ onBack }) {
     const selectedTile = tiles.find(item => item.id === selectedId);
 
     if (selectedTile?.key !== tile.key) {
+      audioRef.current?.playError();
       setSelectedId(tile.id);
       setMessage('Hai quân không giống nhau');
       return;
@@ -148,10 +219,13 @@ export function MahjongScreen({ onBack }) {
     setSelectedId(null);
 
     if (nextActiveCount === 0) {
+      audioRef.current?.playWin();
       setMessage('Bạn đã ghép hết tất cả quân bài!');
       setHasWon(true);
       return;
     }
+
+    audioRef.current?.playMatch();
 
     if (!findAvailablePair(nextTiles)) {
       setMessage('Không còn cặp mở — hãy xáo bài');
@@ -165,11 +239,13 @@ export function MahjongScreen({ onBack }) {
     const pair = findAvailablePair(tiles);
 
     if (!pair) {
+      audioRef.current?.playError();
       setHintIds([]);
       setMessage('Không còn cặp mở — hãy xáo bài');
       return;
     }
 
+    audioRef.current?.playSelect();
     setSelectedId(null);
     setHintIds(pair.map(tile => tile.id));
     setMessage('Hai quân viền xanh có thể ghép với nhau');
@@ -180,12 +256,17 @@ export function MahjongScreen({ onBack }) {
       return;
     }
 
+    audioRef.current?.playShuffle();
     saveHistory();
     setTiles(currentTiles => shuffleRemainingTiles(currentTiles));
     setScore(currentScore => Math.max(0, currentScore - 50));
     setSelectedId(null);
     setHintIds([]);
     setMessage('Đã xáo lại các quân còn lại • -50 điểm');
+  };
+
+  const toggleSound = () => {
+    setSoundEnabled(currentValue => !currentValue);
   };
 
   return (
@@ -195,8 +276,14 @@ export function MahjongScreen({ onBack }) {
           <View style={styles.headerSide}>
             <IconButton
               label="Quay lại danh sách game"
-              icon="‹"
+              icon={IconChevronLeft}
               onPress={onBack}
+            />
+            <IconButton
+              label={soundEnabled ? 'Tắt âm thanh' : 'Bật âm thanh'}
+              icon={soundEnabled ? IconVolume : IconMuted}
+              disabled={!isSoundHydrated}
+              onPress={toggleSound}
             />
           </View>
 
@@ -208,11 +295,15 @@ export function MahjongScreen({ onBack }) {
           <View style={[styles.headerSide, styles.headerActions]}>
             <IconButton
               label="Hoàn tác lượt gần nhất"
-              icon="↶"
+              icon={IconUndo}
               disabled={history.length === 0}
               onPress={handleUndo}
             />
-            <IconButton label="Chơi ván mới" icon="↻" onPress={startNewGame} />
+            <IconButton
+              label="Chơi ván mới"
+              icon={IconRestart}
+              onPress={startNewGame}
+            />
           </View>
         </View>
 
@@ -303,7 +394,7 @@ export function MahjongScreen({ onBack }) {
               pressed ? styles.buttonPressed : null,
             ]}
           >
-            <Text style={styles.secondaryButtonIcon}>◇</Text>
+            <IconHint width={20} height={20} color="#75E6BE" />
             <Text style={styles.secondaryButtonText}>GỢI Ý</Text>
           </Pressable>
           <Pressable
@@ -314,7 +405,7 @@ export function MahjongScreen({ onBack }) {
               pressed ? styles.buttonPressed : null,
             ]}
           >
-            <Text style={styles.primaryButtonIcon}>⤨</Text>
+            <IconShuffle width={20} height={20} color="#4E2B0C" />
             <Text style={styles.primaryButtonText}>XÁO BÀI</Text>
           </Pressable>
         </View>
@@ -330,7 +421,7 @@ export function MahjongScreen({ onBack }) {
         <View style={styles.modalBackdrop}>
           <View style={styles.winCard}>
             <View style={styles.winIcon}>
-              <Text style={styles.winIconText}>發</Text>
+              <IconTrophy width={38} height={38} color="#168B59" />
             </View>
             <Text style={styles.winTitle}>Hoàn thành!</Text>
             <Text style={styles.winScore}>Bạn đạt {score} điểm</Text>
@@ -390,12 +481,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#1D514D',
     borderWidth: 1,
     borderColor: '#37706A',
-  },
-  iconButtonText: {
-    marginTop: -2,
-    color: '#FFF8E8',
-    fontSize: 27,
-    lineHeight: 31,
   },
   disabledButton: {
     opacity: 0.35,
@@ -575,10 +660,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#3B716B',
   },
-  secondaryButtonIcon: {
-    color: '#75E6BE',
-    fontSize: 20,
-  },
   secondaryButtonText: {
     color: '#E9F6F2',
     fontSize: 12,
@@ -593,11 +674,6 @@ const styles = StyleSheet.create({
     gap: 7,
     borderRadius: 17,
     backgroundColor: '#F3A449',
-  },
-  primaryButtonIcon: {
-    color: '#4E2B0C',
-    fontSize: 20,
-    fontWeight: '900',
   },
   primaryButtonText: {
     color: '#4A290B',
@@ -630,11 +706,6 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#E1D0AB',
     borderBottomWidth: 7,
-  },
-  winIconText: {
-    color: '#168B59',
-    fontSize: 34,
-    fontWeight: '900',
   },
   winTitle: {
     marginTop: 18,
