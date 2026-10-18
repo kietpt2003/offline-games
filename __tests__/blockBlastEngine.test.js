@@ -4,6 +4,7 @@ import {
   clearCompletedLines,
   createEmptyBoard,
   createPiece,
+  getCompletedLines,
   getDropOrigin,
   getPieceBounds,
   hasAvailableMove,
@@ -11,7 +12,7 @@ import {
 } from '../src/games/blockBlast/blockBlastEngine';
 
 describe('Block Blast engine', () => {
-  test('creates an empty 8 by 8 board', () => {
+  test('creates an empty square board', () => {
     const board = createEmptyBoard();
 
     expect(board).toHaveLength(BOARD_SIZE);
@@ -47,6 +48,8 @@ describe('Block Blast engine', () => {
     }
 
     board[4][4] = '#FF6B73';
+
+    expect(getCompletedLines(board)).toEqual({ rows: [2], columns: [5] });
 
     const result = clearCompletedLines(board);
 

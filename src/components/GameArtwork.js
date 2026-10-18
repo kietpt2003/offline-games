@@ -5,15 +5,15 @@ const PIKACHU_PREVIEW = require('../games/pikachu/assets/tile_01.png');
 
 function BlockArtwork() {
   const blockStyles = [
-    styles.yellowBlock,
-    styles.yellowBlock,
+    styles.blueBlock,
+    styles.blueBlock,
     styles.emptyBlock,
     styles.blueBlock,
-    styles.redBlock,
-    styles.yellowBlock,
+    styles.blueBlock,
+    styles.blueBlock,
     styles.emptyBlock,
     styles.blueBlock,
-    styles.redBlock,
+    styles.blueBlock,
   ];
 
   return (
@@ -87,17 +87,9 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     borderWidth: 1,
   },
-  yellowBlock: {
-    backgroundColor: '#FFC83D',
-    borderColor: '#FFFFFF66',
-  },
   blueBlock: {
-    backgroundColor: '#59D5E0',
-    borderColor: '#FFFFFF66',
-  },
-  redBlock: {
-    backgroundColor: '#FF6B6B',
-    borderColor: '#FFFFFF66',
+    backgroundColor: '#E5B46F',
+    borderColor: '#FFFFFFAA',
   },
   emptyBlock: {
     backgroundColor: 'transparent',

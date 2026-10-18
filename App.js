@@ -16,18 +16,15 @@ function App({ appVersion }) {
   const isPlayingBlockBlast = activeGame === 'block-blast';
   const isPlayingMahjong = activeGame === 'mahjong';
   const isPlayingPikachu = activeGame === 'pikachu';
-  const isPlayingGame =
-    isPlayingBlockBlast || isPlayingMahjong || isPlayingPikachu;
-
   return (
     <SafeAreaProvider>
       <StatusBar
-        barStyle={isPlayingGame ? 'light-content' : 'dark-content'}
+        barStyle={isPlayingBlockBlast ? 'light-content' : 'dark-content'}
         backgroundColor={
           isPlayingBlockBlast
-            ? '#171A32'
+            ? '#673719'
             : isPlayingMahjong || isPlayingPikachu
-            ? '#123C3A'
+            ? '#F3FBF7'
             : '#F7F8FC'
         }
       />

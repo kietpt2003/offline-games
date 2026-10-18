@@ -22,12 +22,14 @@ import {
   IconVolume,
 } from '../../icons';
 import {
+  BLOCK_COLOR,
   BOARD_SIZE,
   canPieceFit,
   canPlacePiece,
   clearCompletedLines,
   createEmptyBoard,
   generatePieceSet,
+  getCompletedLines,
   getDropOrigin,
   getPieceBounds,
   hasAvailableMove,
@@ -40,23 +42,26 @@ import {
 } from './blockBlastStorage';
 import { createBlockBlastAudio } from './blockBlastAudio';
 
-const BOARD_PADDING = 8;
-const CELL_GAP = 3;
-const PIECE_CELL_SIZE = 17;
-const PIECE_CELL_GAP = 3;
+const BOARD_PADDING = 6;
+const BOARD_BORDER_WIDTH = 5;
+const CELL_GAP = 2;
+const PIECE_CELL_SIZE = 27;
+const PIECE_CELL_GAP = 4;
 const DRAG_LIFT_OFFSET = 80;
-const INVALID_PREVIEW_COLOR = '#717A96';
 const SOUND_KEY = '@offline-games/block-blast-sound-enabled-v1';
 
-function PiecePreview({ piece }) {
+function PiecePreview({
+  piece,
+  cellSize = PIECE_CELL_SIZE,
+  cellGap = PIECE_CELL_GAP,
+}) {
   if (!piece) {
     return <View style={styles.usedPiece} />;
   }
 
   const { rows: rowCount, columns: columnCount } = getPieceBounds(piece);
-  const width =
-    columnCount * PIECE_CELL_SIZE + (columnCount - 1) * PIECE_CELL_GAP;
-  const height = rowCount * PIECE_CELL_SIZE + (rowCount - 1) * PIECE_CELL_GAP;
+  const width = columnCount * cellSize + (columnCount - 1) * cellGap;
+  const height = rowCount * cellSize + (rowCount - 1) * cellGap;
 
   return (
     <View style={[styles.piecePreview, { width, height }]}>
@@ -66,9 +71,11 @@ function PiecePreview({ piece }) {
           style={[
             styles.pieceCell,
             {
-              backgroundColor: piece.color,
-              left: column * (PIECE_CELL_SIZE + PIECE_CELL_GAP),
-              top: row * (PIECE_CELL_SIZE + PIECE_CELL_GAP),
+              width: cellSize,
+              height: cellSize,
+              backgroundColor: BLOCK_COLOR,
+              left: column * (cellSize + cellGap),
+              top: row * (cellSize + cellGap),
             },
           ]}
         />
@@ -85,12 +92,17 @@ function DraggablePiece({
   onDragMove,
   onDragEnd,
   onDragCancel,
+  boardCellSize,
 }) {
   const pan = useRef(new Animated.ValueXY()).current;
   const [isDragging, setIsDragging] = useState(false);
   const [isReturning, setIsReturning] = useState(false);
   const isDisabled = !piece || !canFit;
   const interactionRef = useRef(null);
+  const slotRef = useRef(null);
+  const slotWindowLayoutRef = useRef(null);
+  const dragFrameRef = useRef(null);
+  const pendingDragRef = useRef(null);
 
   interactionRef.current = {
     index,
@@ -99,6 +111,58 @@ function DraggablePiece({
     onDragMove,
     onDragEnd,
     onDragCancel,
+  };
+
+  const measureSlot = () => {
+    slotRef.current?.measureInWindow((x, y, width, height) => {
+      slotWindowLayoutRef.current = { x, y, width, height };
+    });
+  };
+
+  const movePieceCenterToPointer = (pointerX, pointerY) => {
+    const layout = slotWindowLayoutRef.current;
+
+    if (!layout) {
+      return;
+    }
+
+    pan.setValue({
+      x: pointerX - (layout.x + layout.width / 2),
+      y: pointerY - (layout.y + layout.height / 2),
+    });
+  };
+
+  const cancelPendingDragMove = () => {
+    if (dragFrameRef.current !== null) {
+      cancelAnimationFrame(dragFrameRef.current);
+      dragFrameRef.current = null;
+    }
+
+    pendingDragRef.current = null;
+  };
+
+  const scheduleDragMove = (pieceIndex, pointerX, pointerY) => {
+    pendingDragRef.current = { pieceIndex, pointerX, pointerY };
+
+    if (dragFrameRef.current !== null) {
+      return;
+    }
+
+    dragFrameRef.current = requestAnimationFrame(() => {
+      dragFrameRef.current = null;
+      const pendingDrag = pendingDragRef.current;
+
+      if (!pendingDrag) {
+        return;
+      }
+
+      pendingDragRef.current = null;
+      interactionRef.current.onDragMove(
+        pendingDrag.pieceIndex,
+        pendingDrag.pointerX,
+        pendingDrag.pointerY,
+      );
+    });
   };
 
   const resetPosition = () => {
@@ -123,27 +187,34 @@ function DraggablePiece({
       onMoveShouldSetPanResponder: (_, gestureState) =>
         !interactionRef.current.isDisabled &&
         (Math.abs(gestureState.dx) > 5 || Math.abs(gestureState.dy) > 5),
-      onPanResponderGrant: () => {
+      onPanResponderGrant: event => {
         const interaction = interactionRef.current;
+        const { pageX, pageY } = event.nativeEvent;
 
         pan.stopAnimation();
-        pan.setValue({ x: 0, y: 0 });
+        movePieceCenterToPointer(pageX, pageY);
         setIsDragging(true);
         interaction.onDragStart(interaction.index);
       },
       onPanResponderMove: (_, gestureState) => {
         const interaction = interactionRef.current;
 
-        pan.setValue({ x: gestureState.dx, y: gestureState.dy });
-        interaction.onDragMove(
+        movePieceCenterToPointer(gestureState.moveX, gestureState.moveY);
+        scheduleDragMove(
           interaction.index,
           gestureState.moveX,
           gestureState.moveY,
         );
       },
-      onPanResponderRelease: () => {
+      onPanResponderRelease: (_, gestureState) => {
         const interaction = interactionRef.current;
-        const didPlace = interaction.onDragEnd(interaction.index);
+
+        cancelPendingDragMove();
+        const didPlace = interaction.onDragEnd(
+          interaction.index,
+          gestureState.moveX,
+          gestureState.moveY,
+        );
 
         setIsDragging(false);
 
@@ -155,6 +226,7 @@ function DraggablePiece({
         }
       },
       onPanResponderTerminate: () => {
+        cancelPendingDragMove();
         setIsDragging(false);
         interactionRef.current.onDragCancel();
         resetPosition();
@@ -165,7 +237,9 @@ function DraggablePiece({
 
   return (
     <View
+      ref={slotRef}
       {...panResponder.panHandlers}
+      onLayout={measureSlot}
       style={[styles.draggablePiece, isDragging ? styles.draggingPiece : null]}
     >
       <View
@@ -187,11 +261,14 @@ function DraggablePiece({
                   ? Animated.subtract(pan.y, DRAG_LIFT_OFFSET)
                   : pan.y,
               },
-              { scale: isDragging ? 1.22 : 1 },
             ],
           }}
         >
-          <PiecePreview piece={piece} />
+          <PiecePreview
+            piece={piece}
+            cellGap={isDragging ? CELL_GAP : PIECE_CELL_GAP}
+            cellSize={isDragging ? boardCellSize : PIECE_CELL_SIZE}
+          />
         </Animated.View>
       </View>
     </View>
@@ -207,6 +284,35 @@ function ScoreCard({ label, value }) {
   );
 }
 
+function WoodBackdrop() {
+  return (
+    <>
+      <View pointerEvents="none" style={styles.woodBackdrop}>
+        {Array.from({ length: 10 }, (_, index) => (
+          <View
+            key={index}
+            style={[styles.woodGrain, { top: `${index * 11 + 3}%` }]}
+          />
+        ))}
+      </View>
+      <View pointerEvents="none" style={styles.foliageOverlay}>
+        <View style={styles.foliageLeft}>
+          <View style={[styles.leaf, styles.leafOne]} />
+          <View style={[styles.leaf, styles.leafTwo]} />
+          <View style={[styles.leaf, styles.leafThree]} />
+          <View style={[styles.leaf, styles.leafFour]} />
+        </View>
+        <View style={styles.foliageRight}>
+          <View style={[styles.leaf, styles.leafOne]} />
+          <View style={[styles.leaf, styles.leafTwo]} />
+          <View style={[styles.leaf, styles.leafThree]} />
+          <View style={[styles.leaf, styles.leafFour]} />
+        </View>
+      </View>
+    </>
+  );
+}
+
 export function BlockBlastScreen({ onBack }) {
   const { width: windowWidth } = useWindowDimensions();
   const boardRef = useRef(null);
@@ -214,9 +320,12 @@ export function BlockBlastScreen({ onBack }) {
   const dragPreviewRef = useRef(null);
   const persistenceQueueRef = useRef(Promise.resolve());
   const audioRef = useRef(null);
-  const boardSize = Math.min(windowWidth - 32, 400);
+  const boardSize = Math.min(windowWidth - 4, 450);
   const cellSize = Math.floor(
-    (boardSize - BOARD_PADDING * 2 - CELL_GAP * (BOARD_SIZE - 1)) / BOARD_SIZE,
+    (boardSize -
+      (BOARD_PADDING + BOARD_BORDER_WIDTH) * 2 -
+      CELL_GAP * (BOARD_SIZE - 1)) /
+      BOARD_SIZE,
   );
 
   const [board, setBoard] = useState(createEmptyBoard);
@@ -353,7 +462,7 @@ export function BlockBlastScreen({ onBack }) {
   ]);
 
   const previewCellKeys = useMemo(() => {
-    if (!dragPreview) {
+    if (!dragPreview?.isValid) {
       return new Set();
     }
 
@@ -374,6 +483,41 @@ export function BlockBlastScreen({ onBack }) {
       return cellKeys;
     }, new Set());
   }, [dragPreview, pieces]);
+
+  const clearingCellKeys = useMemo(() => {
+    if (!dragPreview?.isValid) {
+      return new Set();
+    }
+
+    const previewPiece = pieces[dragPreview.pieceIndex];
+
+    if (!previewPiece) {
+      return new Set();
+    }
+
+    const previewBoard = placePiece(
+      board,
+      previewPiece,
+      dragPreview.row,
+      dragPreview.column,
+    );
+    const completedLines = getCompletedLines(previewBoard);
+    const cellKeys = new Set();
+
+    completedLines.rows.forEach(row => {
+      for (let column = 0; column < BOARD_SIZE; column += 1) {
+        cellKeys.add(`${row}-${column}`);
+      }
+    });
+
+    completedLines.columns.forEach(column => {
+      for (let row = 0; row < BOARD_SIZE; row += 1) {
+        cellKeys.add(`${row}-${column}`);
+      }
+    });
+
+    return cellKeys;
+  }, [board, dragPreview, pieces]);
 
   const updateDragPreview = nextPreview => {
     const currentPreview = dragPreviewRef.current;
@@ -507,12 +651,12 @@ export function BlockBlastScreen({ onBack }) {
     measureBoard();
   };
 
-  const handleDragMove = (pieceIndex, pointerX, pointerY) => {
+  const getPreviewAtPointer = (pieceIndex, pointerX, pointerY) => {
     const layout = boardLayoutRef.current;
     const draggedPiece = pieces[pieceIndex];
 
     if (!layout || !draggedPiece) {
-      return;
+      return null;
     }
 
     const liftedPointerY = pointerY - DRAG_LIFT_OFFSET;
@@ -523,8 +667,7 @@ export function BlockBlastScreen({ onBack }) {
       liftedPointerY <= layout.y + layout.height + cellSize;
 
     if (!isNearBoard) {
-      updateDragPreview(null);
-      return;
+      return null;
     }
 
     const origin = getDropOrigin({
@@ -533,22 +676,26 @@ export function BlockBlastScreen({ onBack }) {
       pointerY,
       boardX: layout.x,
       boardY: layout.y,
-      boardPadding: BOARD_PADDING,
+      boardPadding: BOARD_PADDING + BOARD_BORDER_WIDTH,
       cellSize,
       cellGap: CELL_GAP,
       liftOffset: DRAG_LIFT_OFFSET,
     });
-    const nextPreview = {
+    return {
       pieceIndex,
       ...origin,
       isValid: canPlacePiece(board, draggedPiece, origin.row, origin.column),
     };
-
-    updateDragPreview(nextPreview);
   };
 
-  const handleDragEnd = pieceIndex => {
-    const preview = dragPreviewRef.current;
+  const handleDragMove = (pieceIndex, pointerX, pointerY) => {
+    const nextPreview = getPreviewAtPointer(pieceIndex, pointerX, pointerY);
+
+    updateDragPreview(nextPreview?.isValid ? nextPreview : null);
+  };
+
+  const handleDragEnd = (pieceIndex, pointerX, pointerY) => {
+    const preview = getPreviewAtPointer(pieceIndex, pointerX, pointerY);
 
     clearDragPreview();
 
@@ -573,6 +720,7 @@ export function BlockBlastScreen({ onBack }) {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <View style={styles.container}>
+        <WoodBackdrop />
         <View style={styles.header}>
           <View style={styles.headerSide}>
             <Pressable
@@ -585,11 +733,13 @@ export function BlockBlastScreen({ onBack }) {
                 pressed ? styles.buttonPressed : null,
               ]}
             >
-              <IconChevronLeft width={27} height={27} color="#FFFFFF" />
+              <IconChevronLeft width={27} height={27} color="#4A2613" />
             </Pressable>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={soundEnabled ? 'Tắt âm thanh' : 'Bật âm thanh'}
+              accessibilityLabel={
+                soundEnabled ? 'Tắt âm thanh' : 'Bật âm thanh'
+              }
               accessibilityState={{ disabled: !isSoundHydrated }}
               disabled={!isSoundHydrated}
               hitSlop={6}
@@ -601,9 +751,9 @@ export function BlockBlastScreen({ onBack }) {
               ]}
             >
               {soundEnabled ? (
-                <IconVolume width={22} height={22} color="#FFFFFF" />
+                <IconVolume width={22} height={22} color="#4A2613" />
               ) : (
-                <IconMuted width={22} height={22} color="#FFFFFF" />
+                <IconMuted width={22} height={22} color="#4A2613" />
               )}
             </Pressable>
           </View>
@@ -627,7 +777,7 @@ export function BlockBlastScreen({ onBack }) {
                 pressed ? styles.buttonPressed : null,
               ]}
             >
-              <IconUndo width={23} height={23} color="#FFFFFF" />
+              <IconUndo width={23} height={23} color="#4A2613" />
             </Pressable>
             <Pressable
               accessibilityRole="button"
@@ -639,7 +789,7 @@ export function BlockBlastScreen({ onBack }) {
                 pressed ? styles.buttonPressed : null,
               ]}
             >
-              <IconRestart width={24} height={24} color="#FFFFFF" />
+              <IconRestart width={24} height={24} color="#4A2613" />
             </Pressable>
           </View>
         </View>
@@ -656,7 +806,7 @@ export function BlockBlastScreen({ onBack }) {
 
         <View
           ref={boardRef}
-          accessibilityLabel="Bàn chơi Block Blast 8 nhân 8"
+          accessibilityLabel={`Bàn chơi Block Blast ${BOARD_SIZE} nhân ${BOARD_SIZE}`}
           onLayout={measureBoard}
           style={[
             styles.board,
@@ -679,19 +829,18 @@ export function BlockBlastScreen({ onBack }) {
                   style={[
                     styles.boardCell,
                     { width: cellSize, height: cellSize },
-                    cellColor ? { backgroundColor: cellColor } : null,
+                    cellColor ? { backgroundColor: BLOCK_COLOR } : null,
                     previewCellKeys.has(`${rowIndex}-${columnIndex}`)
                       ? [
                           styles.previewCell,
                           {
-                            backgroundColor: dragPreview.isValid
-                              ? pieces[dragPreview.pieceIndex].color
-                              : INVALID_PREVIEW_COLOR,
-                            borderColor: dragPreview.isValid
-                              ? '#FFFFFFAA'
-                              : '#E5E8F2',
+                            backgroundColor: BLOCK_COLOR,
+                            borderColor: '#FFFFFF',
                           },
                         ]
+                      : null,
+                    clearingCellKeys.has(`${rowIndex}-${columnIndex}`)
+                      ? styles.clearingCell
                       : null,
                   ]}
                 />
@@ -716,6 +865,7 @@ export function BlockBlastScreen({ onBack }) {
               onDragMove={handleDragMove}
               onDragEnd={handleDragEnd}
               onDragCancel={clearDragPreview}
+              boardCellSize={cellSize}
             />
           ))}
         </View>
@@ -731,7 +881,7 @@ export function BlockBlastScreen({ onBack }) {
         <View style={styles.modalBackdrop}>
           <View style={styles.gameOverCard}>
             <View style={styles.gameOverIcon}>
-              <IconBlocks width={28} height={28} color="#292D4C" />
+              <IconBlocks width={28} height={28} color="#5B2D17" />
             </View>
             <Text style={styles.gameOverTitle}>Hết nước đi!</Text>
             <Text style={styles.gameOverScore}>Bạn đạt {score} điểm</Text>
@@ -776,28 +926,99 @@ export function BlockBlastScreen({ onBack }) {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#171A32',
+    backgroundColor: '#673719',
   },
   container: {
     flex: 1,
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 2,
     paddingBottom: 16,
+    backgroundColor: '#A55F30',
+    overflow: 'hidden',
+  },
+  woodBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    overflow: 'hidden',
+  },
+  woodGrain: {
+    position: 'absolute',
+    left: -30,
+    right: -30,
+    height: 2,
+    borderRadius: 2,
+    backgroundColor: '#6E351A24',
+    transform: [{ rotate: '-1deg' }],
+  },
+  foliageOverlay: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    left: 0,
+    height: 82,
+    zIndex: 20,
+  },
+  foliageLeft: {
+    position: 'absolute',
+    top: -7,
+    left: -8,
+    width: 118,
+    height: 76,
+  },
+  foliageRight: {
+    position: 'absolute',
+    top: -7,
+    right: -8,
+    width: 118,
+    height: 76,
+    transform: [{ scaleX: -1 }],
+  },
+  leaf: {
+    position: 'absolute',
+    width: 43,
+    height: 20,
+    borderTopLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    backgroundColor: '#315E25',
+    borderWidth: 1,
+    borderColor: '#214718',
+  },
+  leafOne: {
+    top: 1,
+    left: 0,
+    transform: [{ rotate: '24deg' }],
+  },
+  leafTwo: {
+    top: 23,
+    left: 18,
+    backgroundColor: '#477A31',
+    transform: [{ rotate: '-20deg' }],
+  },
+  leafThree: {
+    top: 3,
+    left: 52,
+    transform: [{ rotate: '48deg' }],
+  },
+  leafFour: {
+    top: 38,
+    left: 66,
+    backgroundColor: '#3D6C2C',
+    transform: [{ rotate: '12deg' }],
   },
   loadingContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#171A32',
+    backgroundColor: '#A55F30',
   },
   loadingText: {
-    color: '#B4B9D1',
+    color: '#FFE2A1',
     fontSize: 14,
     fontWeight: '700',
   },
   header: {
     width: '100%',
-    height: 58,
+    height: 66,
+    zIndex: 30,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -814,12 +1035,12 @@ const styles = StyleSheet.create({
   headerButton: {
     width: 40,
     height: 40,
-    borderRadius: 14,
+    borderRadius: 5,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#252947',
-    borderWidth: 1,
-    borderColor: '#383D66',
+    backgroundColor: '#C48849',
+    borderWidth: 2,
+    borderColor: '#E0AF6B',
   },
   disabledHeaderButton: {
     opacity: 0.35,
@@ -830,106 +1051,151 @@ const styles = StyleSheet.create({
   },
   titleGroup: {
     alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 5,
+    backgroundColor: '#683719',
+    borderWidth: 2,
+    borderColor: '#9D6334',
   },
   title: {
-    color: '#FFFFFF',
-    fontSize: 20,
+    color: '#FFD982',
+    fontSize: 21,
     fontWeight: '900',
     letterSpacing: 1.1,
   },
   subtitle: {
     marginTop: 2,
-    color: '#8D93B5',
-    fontSize: 9,
+    color: '#E9BA72',
+    fontSize: 10,
     fontWeight: '800',
     letterSpacing: 1,
   },
   scoreRow: {
-    width: '100%',
-    marginTop: 7,
+    width: '76%',
+    maxWidth: 330,
+    height: 70,
+    marginTop: 3,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: 6,
+    backgroundColor: '#B97538',
+    borderWidth: 2,
+    borderColor: '#DAA15D',
+    shadowColor: '#3A180C',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.35,
+    shadowRadius: 5,
+    elevation: 5,
   },
   scoreCard: {
     width: 112,
     alignItems: 'center',
   },
   scoreLabel: {
-    color: '#8D93B5',
-    fontSize: 10,
+    color: '#5A2C16',
+    fontSize: 12,
     fontWeight: '800',
     letterSpacing: 1.2,
   },
   scoreValue: {
     marginTop: 1,
-    color: '#FFD447',
-    fontSize: 27,
-    lineHeight: 32,
+    color: '#FFE18F',
+    fontSize: 31,
+    lineHeight: 36,
     fontWeight: '900',
+    textShadowColor: '#673216',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 1,
   },
   scoreDivider: {
     width: 1,
     height: 34,
-    backgroundColor: '#383D5D',
+    backgroundColor: '#6E371B66',
   },
   message: {
-    height: 30,
-    marginTop: 2,
-    color: '#B4B9D1',
-    fontSize: 12,
-    lineHeight: 30,
-    fontWeight: '600',
+    width: '94%',
+    height: 25,
+    marginTop: 7,
+    marginBottom: 5,
+    color: '#FFF3C8',
+    fontSize: 13,
+    lineHeight: 25,
+    fontWeight: '800',
+    textAlign: 'center',
+    borderRadius: 13,
+    backgroundColor: '#D99625',
+    borderWidth: 2,
+    borderColor: '#F0BF4D',
   },
   board: {
-    borderRadius: 19,
-    backgroundColor: '#222642',
-    borderWidth: 1,
-    borderColor: '#343958',
-    shadowColor: '#000000',
+    borderRadius: 7,
+    backgroundColor: '#35180D',
+    borderWidth: BOARD_BORDER_WIDTH,
+    borderColor: '#7E431F',
+    shadowColor: '#271006',
     shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.28,
-    shadowRadius: 20,
+    shadowOpacity: 0.55,
+    shadowRadius: 12,
     elevation: 10,
   },
   boardRow: {
     flexDirection: 'row',
   },
   boardCell: {
-    borderRadius: 6,
-    backgroundColor: '#303552',
+    borderRadius: 2,
+    backgroundColor: '#2B120A',
     borderWidth: 1,
-    borderColor: '#3B4163',
+    borderColor: '#57301C',
   },
   previewCell: {
     opacity: 0.72,
     borderWidth: 2,
     borderColor: '#FFFFFFAA',
   },
+  clearingCell: {
+    zIndex: 2,
+    opacity: 1,
+    backgroundColor: '#FFE096',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    shadowColor: '#FFF1A8',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.95,
+    shadowRadius: 8,
+    elevation: 8,
+  },
   trayHeader: {
     width: '100%',
-    marginTop: 18,
-    marginBottom: 9,
+    marginTop: 11,
+    marginBottom: 5,
+    paddingHorizontal: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
   trayTitle: {
-    color: '#FFFFFF',
-    fontSize: 12,
+    color: '#FFE0A0',
+    fontSize: 14,
     fontWeight: '900',
     letterSpacing: 1.2,
   },
   trayHint: {
-    color: '#777E9F',
-    fontSize: 11,
+    color: '#E9BC7C',
+    fontSize: 13,
     fontWeight: '600',
   },
   pieceTray: {
     width: '100%',
-    height: 104,
+    height: 112,
     flexDirection: 'row',
     gap: 9,
+    padding: 6,
+    backgroundColor: '#8B4925',
+    borderTopWidth: 3,
+    borderBottomWidth: 3,
+    borderColor: '#C17C3E',
   },
   draggablePiece: {
     flex: 1,
@@ -946,10 +1212,10 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 18,
-    backgroundColor: '#202440',
+    borderRadius: 5,
+    backgroundColor: '#6B351C66',
     borderWidth: 2,
-    borderColor: 'transparent',
+    borderColor: '#B66C35',
     overflow: 'visible',
   },
   disabledPieceSlot: {
@@ -964,20 +1230,20 @@ const styles = StyleSheet.create({
     height: PIECE_CELL_SIZE,
     borderRadius: 5,
     borderWidth: 1,
-    borderColor: '#FFFFFF55',
+    borderColor: '#FFF0C2',
   },
   usedPiece: {
     width: 24,
     height: 3,
     borderRadius: 2,
-    backgroundColor: '#484D6C',
+    backgroundColor: '#D29A5D',
   },
   modalBackdrop: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 28,
-    backgroundColor: '#090B18CC',
+    backgroundColor: '#281006CC',
   },
   gameOverCard: {
     width: '100%',
@@ -987,9 +1253,9 @@ const styles = StyleSheet.create({
     paddingTop: 28,
     paddingBottom: 20,
     borderRadius: 28,
-    backgroundColor: '#252947',
+    backgroundColor: '#C18448',
     borderWidth: 1,
-    borderColor: '#41476E',
+    borderColor: '#E1AE6A',
   },
   gameOverIcon: {
     width: 58,
@@ -997,17 +1263,17 @@ const styles = StyleSheet.create({
     borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFD447',
+    backgroundColor: '#F3C779',
   },
   gameOverTitle: {
     marginTop: 18,
-    color: '#FFFFFF',
+    color: '#4C2512',
     fontSize: 26,
     fontWeight: '900',
   },
   gameOverScore: {
     marginTop: 7,
-    color: '#AEB3CA',
+    color: '#684022',
     fontSize: 15,
     fontWeight: '600',
   },
@@ -1018,7 +1284,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 17,
-    backgroundColor: '#FFD447',
+    backgroundColor: '#6B351B',
   },
   undoGameOverButton: {
     width: '100%',
@@ -1029,9 +1295,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     borderRadius: 16,
-    backgroundColor: '#313758',
+    backgroundColor: '#4B2412',
     borderWidth: 1,
-    borderColor: '#59617E',
+    borderColor: '#8C572E',
   },
   undoGameOverText: {
     color: '#FFFFFF',
@@ -1040,7 +1306,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
   },
   playAgainText: {
-    color: '#252947',
+    color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '900',
     letterSpacing: 1,
@@ -1050,7 +1316,7 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
   },
   leaveText: {
-    color: '#AEB3CA',
+    color: '#5E351C',
     fontSize: 13,
     fontWeight: '700',
   },

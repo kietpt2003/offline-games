@@ -1,4 +1,4 @@
-export const BOARD_SIZE = 8;
+export const BOARD_SIZE = 7;
 
 const SHAPE_TEMPLATES = [
   [[0, 0]],
@@ -81,7 +81,8 @@ const SHAPE_TEMPLATES = [
   ],
 ];
 
-const PIECE_COLORS = ['#FFD447', '#58D6E7', '#FF6B73', '#A879FF', '#5CE0A0'];
+export const BLOCK_COLOR = '#E5B46F';
+const PIECE_COLORS = [BLOCK_COLOR];
 
 export function createEmptyBoard() {
   return Array.from({ length: BOARD_SIZE }, () => Array(BOARD_SIZE).fill(null));
@@ -91,7 +92,7 @@ export function createPiece(shapeIndex, colorIndex, id = 'piece') {
   return {
     id,
     cells: SHAPE_TEMPLATES[shapeIndex],
-    color: PIECE_COLORS[colorIndex],
+    color: BLOCK_COLOR,
   };
 }
 
@@ -178,7 +179,7 @@ export function placePiece(board, piece, originRow, originColumn) {
   return nextBoard;
 }
 
-export function clearCompletedLines(board) {
+export function getCompletedLines(board) {
   const completedRows = [];
   const completedColumns = [];
 
@@ -202,6 +203,13 @@ export function clearCompletedLines(board) {
       completedColumns.push(column);
     }
   }
+
+  return { rows: completedRows, columns: completedColumns };
+}
+
+export function clearCompletedLines(board) {
+  const { rows: completedRows, columns: completedColumns } =
+    getCompletedLines(board);
 
   if (completedRows.length === 0 && completedColumns.length === 0) {
     return { board, clearedLines: 0 };

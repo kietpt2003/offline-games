@@ -108,7 +108,7 @@ function IconButton({ label, icon, disabled = false, onPress }) {
         pressed ? styles.buttonPressed : null,
       ]}
     >
-      <Icon width={21} height={21} color="#FFF8D7" />
+      <Icon width={21} height={21} color="#285C53" />
     </Pressable>
   );
 }
@@ -134,16 +134,14 @@ export function PikachuScreen({ onBack }) {
   const audioRef = useRef(null);
   const config = getLevelConfig(level);
   const remainingTiles = countRemainingTiles(board);
-  const isLandscape = windowWidth > windowHeight;
   const cellSize = Math.min(
-    44,
-    Math.floor((windowWidth - 220) / (config.columns + BOARD_GUTTER_RATIO * 2)),
-    Math.floor((windowHeight - 12) / (config.rows + BOARD_GUTTER_RATIO * 2)),
+    90,
+    Math.floor((windowWidth - 20) / (config.columns + BOARD_GUTTER_RATIO * 2)),
+    Math.floor((windowHeight - 238) / (config.rows + BOARD_GUTTER_RATIO * 2)),
   );
   const boardGutter = cellSize * BOARD_GUTTER_RATIO;
   const boardWidth = cellSize * config.columns + boardGutter * 2;
   const boardHeight = cellSize * config.rows + boardGutter * 2;
-  const sidePanelWidth = Math.max(84, (windowWidth - boardWidth - 36) / 2);
   const pathSize = Math.max(5, cellSize * 0.15);
 
   const getPathOffset = (index, count) => {
@@ -159,7 +157,7 @@ export function PikachuScreen({ onBack }) {
   };
 
   useEffect(() => {
-    ScreenOrientation?.lockLandscape();
+    ScreenOrientation?.lockPortrait();
 
     return () => ScreenOrientation?.lockPortrait();
   }, []);
@@ -393,18 +391,8 @@ export function PikachuScreen({ onBack }) {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-      <View
-        style={[
-          styles.container,
-          isLandscape ? styles.landscapeContainer : null,
-        ]}
-      >
-        <View
-          style={[
-            styles.sidePanel,
-            isLandscape ? { width: sidePanelWidth } : null,
-          ]}
-        >
+      <View style={styles.container}>
+        <View style={styles.sidePanel}>
           <View style={styles.header}>
             <IconButton
               label="Quay lại danh sách game"
@@ -467,7 +455,7 @@ export function PikachuScreen({ onBack }) {
                 pressed ? styles.buttonPressed : null,
               ]}
             >
-              <IconHint width={18} height={18} color="#FFE35B" />
+              <IconHint width={18} height={18} color="#25846F" />
               <Text style={styles.actionText}>Gợi ý</Text>
             </Pressable>
             <View style={styles.remainingBadge}>
@@ -481,7 +469,7 @@ export function PikachuScreen({ onBack }) {
                 pressed ? styles.buttonPressed : null,
               ]}
             >
-              <IconShuffle width={18} height={18} color="#FFE35B" />
+              <IconShuffle width={18} height={18} color="#25846F" />
               <Text style={styles.actionText}>Xáo</Text>
             </Pressable>
           </View>
@@ -494,17 +482,12 @@ export function PikachuScreen({ onBack }) {
             {
               width: boardWidth,
               height: boardHeight,
-              marginLeft: -boardWidth / 2,
-              marginTop: -boardHeight / 2,
             },
           ]}
         >
           {connectionPath.slice(1).map((point, index) => {
             const previousPoint = connectionPath[index];
-            const startX = getPathOffset(
-              previousPoint.column,
-              config.columns,
-            );
+            const startX = getPathOffset(previousPoint.column, config.columns);
             const startY = getPathOffset(previousPoint.row, config.rows);
             const endX = getPathOffset(point.column, config.columns);
             const endY = getPathOffset(point.row, config.rows);
@@ -619,48 +602,37 @@ export function PikachuScreen({ onBack }) {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#123C3A' },
+  safeArea: { flex: 1, backgroundColor: '#F2FBF7' },
   container: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
     padding: 8,
-    backgroundColor: '#123C3A',
-  },
-  landscapeContainer: {
-    position: 'relative',
+    backgroundColor: '#F2FBF7',
   },
   sidePanel: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    left: 0,
-    justifyContent: 'center',
+    width: '100%',
+    maxWidth: 460,
   },
   header: {
     width: '100%',
-    height: 78,
+    height: 52,
     flexDirection: 'row',
-    alignItems: 'flex-end',
+    alignItems: 'center',
     justifyContent: 'space-between',
   },
   titleGroup: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
     alignItems: 'center',
   },
   title: {
-    color: '#FFF8D7',
-    fontSize: 17,
+    color: '#214E47',
+    fontSize: 20,
     fontWeight: '900',
     letterSpacing: 1.5,
   },
   subtitle: {
     marginTop: 2,
-    color: '#8ED9C5',
-    fontSize: 9,
+    color: '#6C9189',
+    fontSize: 11,
     fontWeight: '800',
     letterSpacing: 1,
   },
@@ -670,62 +642,61 @@ const styles = StyleSheet.create({
     borderRadius: 11,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF18',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#FFFFFF24',
+    borderColor: '#CFE5DC',
   },
   headerActions: { flexDirection: 'row', gap: 6 },
   disabledButton: { opacity: 0.35 },
   buttonPressed: { opacity: 0.7, transform: [{ scale: 0.96 }] },
   statsCard: {
     width: '100%',
-    height: 94,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 5,
-    borderRadius: 17,
-    backgroundColor: '#0C302F',
-    borderWidth: 1,
-    borderColor: '#2B625D',
-  },
-  statItem: {
-    width: '100%',
-    flex: 1,
-    paddingHorizontal: 10,
+    height: 60,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+    borderRadius: 17,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#D5E9E1',
+  },
+  statItem: {
+    flex: 1,
+    paddingHorizontal: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   statLabel: {
-    color: '#7EB8AE',
-    fontSize: 7,
+    color: '#71968E',
+    fontSize: 9,
     fontWeight: '800',
     letterSpacing: 1,
   },
   statValue: {
-    color: '#FFFFFF',
-    fontSize: 14,
+    marginTop: 1,
+    color: '#25846F',
+    fontSize: 17,
     fontWeight: '900',
   },
-  statDivider: { width: '82%', height: 1, backgroundColor: '#FFFFFF18' },
+  statDivider: { width: 1, height: 28, backgroundColor: '#DDECE7' },
   dangerText: { color: '#FF8278' },
   message: {
-    height: 38,
-    paddingTop: 9,
-    color: '#C5E8DF',
-    fontSize: 9,
+    height: 32,
+    lineHeight: 32,
+    color: '#567970',
+    fontSize: 12,
     fontWeight: '700',
     textAlign: 'center',
   },
   board: {
-    position: 'absolute',
-    left: '50%',
-    top: '50%',
+    position: 'relative',
+    marginTop: 6,
     overflow: 'visible',
     borderRadius: 20,
-    backgroundColor: '#0A302D',
+    backgroundColor: '#DDEFE7',
     borderWidth: 2,
-    borderColor: '#2B6B62',
+    borderColor: '#BFDCCF',
   },
   tile: {
     position: 'absolute',
@@ -735,9 +706,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5DFC2',
     borderWidth: 1,
     borderColor: '#E4C39A',
-    shadowColor: '#001C18',
+    shadowColor: '#315E54',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.14,
     shadowRadius: 2,
     elevation: 3,
   },
@@ -762,28 +733,31 @@ const styles = StyleSheet.create({
   },
   footer: {
     width: '100%',
-    marginTop: 4,
+    height: 48,
+    marginTop: 5,
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    justifyContent: 'center',
+    gap: 10,
   },
   actionButton: {
-    width: '100%',
-    height: 36,
+    width: 100,
+    height: 42,
     flexDirection: 'row',
     gap: 4,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 12,
-    backgroundColor: '#FFFFFF18',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#FFFFFF24',
+    borderColor: '#CFE5DC',
   },
-  actionText: { color: '#E6F5F0', fontSize: 10, fontWeight: '800' },
-  remainingBadge: { height: 32, alignItems: 'center' },
-  remainingValue: { color: '#FFFFFF', fontSize: 17, fontWeight: '900' },
+  actionText: { color: '#25846F', fontSize: 13, fontWeight: '800' },
+  remainingBadge: { width: 54, height: 42, alignItems: 'center' },
+  remainingValue: { color: '#25846F', fontSize: 19, fontWeight: '900' },
   remainingLabel: {
-    color: '#7EB8AE',
-    fontSize: 8,
+    color: '#71968E',
+    fontSize: 10,
     fontWeight: '800',
     letterSpacing: 0.7,
   },
@@ -792,7 +766,7 @@ const styles = StyleSheet.create({
     padding: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#001A18CC',
+    backgroundColor: '#285C5380',
   },
   modalCard: {
     width: '100%',
@@ -811,8 +785,8 @@ const styles = StyleSheet.create({
   modalDescription: {
     marginTop: 9,
     color: '#58706D',
-    fontSize: 14,
-    lineHeight: 21,
+    fontSize: 16,
+    lineHeight: 24,
     textAlign: 'center',
   },
   primaryButton: {
@@ -826,7 +800,7 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: {
     color: '#FFFFFF',
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '900',
     letterSpacing: 0.7,
   },

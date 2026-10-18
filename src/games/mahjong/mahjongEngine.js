@@ -1,24 +1,24 @@
 export const MAHJONG_FACES = [
-  { key: 'wan-1', value: '一', suit: '萬', color: '#D64B3C' },
-  { key: 'wan-2', value: '二', suit: '萬', color: '#D64B3C' },
-  { key: 'wan-3', value: '三', suit: '萬', color: '#D64B3C' },
-  { key: 'wan-4', value: '四', suit: '萬', color: '#D64B3C' },
-  { key: 'wan-5', value: '五', suit: '萬', color: '#D64B3C' },
-  { key: 'wan-6', value: '六', suit: '萬', color: '#D64B3C' },
-  { key: 'wan-7', value: '七', suit: '萬', color: '#D64B3C' },
-  { key: 'tong-1', value: '1', suit: '筒', color: '#168B73' },
-  { key: 'tong-2', value: '2', suit: '筒', color: '#168B73' },
-  { key: 'tong-3', value: '3', suit: '筒', color: '#168B73' },
-  { key: 'tong-4', value: '4', suit: '筒', color: '#168B73' },
-  { key: 'tong-5', value: '5', suit: '筒', color: '#168B73' },
-  { key: 'tong-6', value: '6', suit: '筒', color: '#168B73' },
-  { key: 'tong-7', value: '7', suit: '筒', color: '#168B73' },
-  { key: 'east', value: '東', suit: 'Gió', color: '#244F83' },
-  { key: 'south', value: '南', suit: 'Gió', color: '#244F83' },
-  { key: 'west', value: '西', suit: 'Gió', color: '#244F83' },
-  { key: 'north', value: '北', suit: 'Gió', color: '#244F83' },
-  { key: 'red', value: '中', suit: 'Rồng', color: '#C83D36' },
-  { key: 'green', value: '發', suit: 'Rồng', color: '#168B59' },
+  { key: 'wan-1', type: 'wan', rank: 1, value: '一', suit: '萬' },
+  { key: 'wan-2', type: 'wan', rank: 2, value: '二', suit: '萬' },
+  { key: 'wan-3', type: 'wan', rank: 3, value: '三', suit: '萬' },
+  { key: 'wan-4', type: 'wan', rank: 4, value: '四', suit: '萬' },
+  { key: 'tong-1', type: 'tong', rank: 1, value: '1', suit: '筒' },
+  { key: 'tong-2', type: 'tong', rank: 2, value: '2', suit: '筒' },
+  { key: 'tong-3', type: 'tong', rank: 3, value: '3', suit: '筒' },
+  { key: 'tong-4', type: 'tong', rank: 4, value: '4', suit: '筒' },
+  { key: 'suo-1', type: 'suo', rank: 1, value: '1', suit: '索' },
+  { key: 'suo-2', type: 'suo', rank: 2, value: '2', suit: '索' },
+  { key: 'suo-3', type: 'suo', rank: 3, value: '3', suit: '索' },
+  { key: 'suo-4', type: 'suo', rank: 4, value: '4', suit: '索' },
+  { key: 'east', type: 'honor', value: '東', suit: 'Gió Đông' },
+  { key: 'south', type: 'honor', value: '南', suit: 'Gió Nam' },
+  { key: 'west', type: 'honor', value: '西', suit: 'Gió Tây' },
+  { key: 'north', type: 'honor', value: '北', suit: 'Gió Bắc' },
+  { key: 'red', type: 'dragon', value: '中', suit: 'Rồng đỏ' },
+  { key: 'green', type: 'dragon', value: '發', suit: 'Rồng xanh' },
+  { key: 'white', type: 'white', value: '□', suit: 'Rồng trắng' },
+  { key: 'flower', type: 'flower', value: '梅', suit: 'Hoa mai' },
 ];
 
 function shuffle(items, random) {
@@ -53,25 +53,50 @@ export function createMahjongLayout() {
     }
   };
 
-  addLayer(8, 6, 0, 0, 0);
-  addLayer(6, 4, 1, 1, 1);
-  addLayer(4, 2, 2, 2, 2);
+  // A tall pyramid keeps Vita Mahjong's layered silhouette while allowing
+  // four genuinely large tiles across a portrait phone.
+  addLayer(2, 1, 1, 0, 0);
+  addLayer(4, 6, 0, 1, 0);
+  addLayer(2, 1, 1, 7, 0);
+  addLayer(3, 4, 0.5, 2, 1);
 
   return positions;
 }
 
-function overlaps(first, second) {
+function overlaps(first, second, geometry) {
+  if (geometry) {
+    const horizontalDistance = Math.abs(
+      (first.x - second.x) * geometry.tileWidth +
+        (first.layer - second.layer) * 3,
+    );
+    const verticalDistance = Math.abs(
+      (first.y - second.y) * geometry.rowStep -
+        (first.layer - second.layer) * 5,
+    );
+
+    return (
+      horizontalDistance < geometry.tileWidth - 2 &&
+      verticalDistance < geometry.tileHeight - 2
+    );
+  }
+
   return Math.abs(first.x - second.x) < 1 && Math.abs(first.y - second.y) < 1;
 }
 
-export function isTileFree(tile, tiles) {
+function getTileStackOrder(tile) {
+  return tile.layer * 100 + tile.y * 10 + tile.x;
+}
+
+export function isTileFree(tile, tiles, geometry) {
   if (!tile?.active) {
     return false;
   }
 
   const activeTiles = tiles.filter(item => item.active && item.id !== tile.id);
   const hasTileAbove = activeTiles.some(
-    item => item.layer > tile.layer && overlaps(item, tile),
+    item =>
+      getTileStackOrder(item) > getTileStackOrder(tile) &&
+      overlaps(item, tile, geometry),
   );
 
   if (hasTileAbove) {
@@ -94,26 +119,58 @@ export function isTileFree(tile, tiles) {
   return !hasLeftNeighbor || !hasRightNeighbor;
 }
 
-export function getFreeTiles(tiles) {
-  return tiles.filter(tile => isTileFree(tile, tiles));
+export function getFreeTiles(tiles, geometry) {
+  return tiles.filter(tile => isTileFree(tile, tiles, geometry));
 }
 
-function createRemovalPairs(positions, random) {
-  let remaining = positions.map(position => ({ ...position, active: true }));
-  const pairs = [];
+function createRemovalPairs(positions, random, geometry) {
+  const failedStates = new Set();
 
-  while (remaining.length > 0) {
-    const freeTiles = shuffle(getFreeTiles(remaining), random);
-
-    if (freeTiles.length < 2) {
-      throw new Error('Không thể tạo bàn Mahjong có lời giải');
+  const findPairs = (remaining, pairs) => {
+    if (remaining.length === 0) {
+      return pairs;
     }
 
-    const pair = freeTiles.slice(0, 2);
-    const removedIds = new Set(pair.map(tile => tile.id));
+    const stateKey = remaining.map(tile => tile.id).join(',');
 
-    pairs.push(pair);
-    remaining = remaining.filter(tile => !removedIds.has(tile.id));
+    if (failedStates.has(stateKey)) {
+      return null;
+    }
+
+    const freeTiles = shuffle(getFreeTiles(remaining, geometry), random);
+    const candidatePairs = [];
+
+    for (let firstIndex = 0; firstIndex < freeTiles.length; firstIndex += 1) {
+      for (
+        let secondIndex = firstIndex + 1;
+        secondIndex < freeTiles.length;
+        secondIndex += 1
+      ) {
+        candidatePairs.push([freeTiles[firstIndex], freeTiles[secondIndex]]);
+      }
+    }
+
+    for (const pair of shuffle(candidatePairs, random)) {
+      const removedIds = new Set(pair.map(tile => tile.id));
+      const nextRemaining = remaining.filter(tile => !removedIds.has(tile.id));
+      const result = findPairs(nextRemaining, [...pairs, pair]);
+
+      if (result) {
+        return result;
+      }
+    }
+
+    failedStates.add(stateKey);
+    return null;
+  };
+
+  const pairs = findPairs(
+    positions.map(position => ({ ...position, active: true })),
+    [],
+  );
+
+  if (!pairs) {
+    throw new Error('Không thể tạo bàn Mahjong có lời giải');
   }
 
   return pairs;
@@ -132,25 +189,30 @@ function createFacePairs(pairCount, random) {
   return shuffle(pairFaces, random);
 }
 
-export function createMahjongBoard(random = Math.random) {
+export function createMahjongBoard(random = Math.random, geometry) {
   const positions = createMahjongLayout();
-  const removalPairs = createRemovalPairs(positions, random);
+  const removalPairs = createRemovalPairs(positions, random, geometry);
   const facePairs = createFacePairs(removalPairs.length, random);
+  const faceUpStates = shuffle(
+    positions.map((_, index) => index % 3 !== 0),
+    random,
+  );
   const facesById = new Map();
 
   removalPairs.forEach((pair, index) => {
     pair.forEach(tile => facesById.set(tile.id, facePairs[index]));
   });
 
-  return positions.map(position => ({
+  return positions.map((position, index) => ({
     ...position,
     ...facesById.get(position.id),
     active: true,
+    faceUp: faceUpStates[index],
   }));
 }
 
-export function findAvailablePair(tiles) {
-  const freeTiles = getFreeTiles(tiles);
+export function findAvailablePair(tiles, geometry) {
+  const freeTiles = getFreeTiles(tiles, geometry).filter(tile => tile.faceUp);
 
   for (let firstIndex = 0; firstIndex < freeTiles.length; firstIndex += 1) {
     for (
@@ -167,7 +229,7 @@ export function findAvailablePair(tiles) {
   return null;
 }
 
-export function removePair(tiles, firstId, secondId) {
+export function removePair(tiles, firstId, secondId, geometry) {
   const first = tiles.find(tile => tile.id === firstId);
   const second = tiles.find(tile => tile.id === secondId);
 
@@ -176,8 +238,10 @@ export function removePair(tiles, firstId, secondId) {
     !second ||
     first.id === second.id ||
     first.key !== second.key ||
-    !isTileFree(first, tiles) ||
-    !isTileFree(second, tiles)
+    !first.faceUp ||
+    !second.faceUp ||
+    !isTileFree(first, tiles, geometry) ||
+    !isTileFree(second, tiles, geometry)
   ) {
     return tiles;
   }
@@ -189,7 +253,31 @@ export function removePair(tiles, firstId, secondId) {
   );
 }
 
-export function shuffleRemainingTiles(tiles, random = Math.random) {
+export function revealTile(tiles, tileId, geometry) {
+  const tile = tiles.find(item => item.id === tileId);
+
+  if (!tile || tile.faceUp || !isTileFree(tile, tiles, geometry)) {
+    return tiles;
+  }
+
+  return tiles.map(item =>
+    item.id === tileId ? { ...item, faceUp: true } : item,
+  );
+}
+
+export function restoreTileFaceUpStates(tiles, faceUpStates) {
+  const statesById = new Map(
+    faceUpStates.map(({ id, faceUp }) => [id, faceUp]),
+  );
+
+  return tiles.map(tile =>
+    statesById.has(tile.id)
+      ? { ...tile, faceUp: statesById.get(tile.id) }
+      : tile,
+  );
+}
+
+export function shuffleRemainingTiles(tiles, random = Math.random, geometry) {
   const activeTiles = tiles.filter(tile => tile.active);
 
   if (activeTiles.length < 2) {
@@ -209,7 +297,7 @@ export function shuffleRemainingTiles(tiles, random = Math.random) {
     }
   });
 
-  const removalPairs = createRemovalPairs(activeTiles, random);
+  const removalPairs = createRemovalPairs(activeTiles, random, geometry);
   const shuffledFaces = shuffle(pairFaces, random);
   const facesById = new Map();
 
@@ -224,9 +312,10 @@ export function shuffleRemainingTiles(tiles, random = Math.random) {
       ? {
           ...tile,
           key: face.key,
+          type: face.type,
+          rank: face.rank,
           value: face.value,
           suit: face.suit,
-          color: face.color,
         }
       : tile;
   });

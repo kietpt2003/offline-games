@@ -85,14 +85,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   title: {
-    color: '#FFFFFF',
+    color: '#263650',
     fontSize: 16,
     fontWeight: '800',
     letterSpacing: -0.3,
   },
   description: {
     marginTop: 3,
-    color: '#FFFFFFCC',
+    color: '#607087',
     fontSize: 11,
     fontWeight: '500',
   },
