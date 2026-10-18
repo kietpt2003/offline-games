@@ -103,7 +103,11 @@ export function HomeScreen({ appVersion, onOpenGame }) {
     if (
       game.id === 'block-blast' ||
       game.id === 'mahjong' ||
-      game.id === 'pikachu'
+      game.id === 'pikachu' ||
+      game.id === 'game-2048' ||
+      game.id === 'gomoku' ||
+      game.id === 'sudoku' ||
+      game.id === 'minesweeper'
     ) {
       onOpenGame(game.id);
     }

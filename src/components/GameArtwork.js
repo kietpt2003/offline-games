@@ -60,6 +60,66 @@ function PikachuArtwork() {
   );
 }
 
+function Game2048Artwork() {
+  return (
+    <View style={styles.numberGrid}>
+      <Text style={[styles.numberTile, styles.numberTileLight]}>2</Text>
+      <Text style={[styles.numberTile, styles.numberTileMedium]}>4</Text>
+      <Text style={[styles.numberTile, styles.numberTileStrong]}>8</Text>
+      <Text style={[styles.numberTile, styles.numberTileBright]}>16</Text>
+    </View>
+  );
+}
+
+function GomokuArtwork() {
+  return (
+    <View style={styles.gomokuBoard}>
+      <View style={styles.gomokuLineVertical} />
+      <View style={styles.gomokuLineHorizontal} />
+      <View style={[styles.gomokuStone, styles.gomokuStoneDark]} />
+      <View style={[styles.gomokuStone, styles.gomokuStoneLight]} />
+      <View style={[styles.gomokuStone, styles.gomokuStoneDarkSecond]} />
+    </View>
+  );
+}
+
+function SudokuArtwork() {
+  return (
+    <View style={styles.sudokuGrid}>
+      {['1', '', '3', '4', '5', '', '7', '8', '9'].map((digit, index) => (
+        <View
+          key={index}
+          style={[
+            styles.sudokuCell,
+            index === 2 || index === 5 ? styles.sudokuCellDivider : null,
+          ]}
+        >
+          <Text style={styles.sudokuDigit}>{digit}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+function MinesweeperArtwork() {
+  return (
+    <View style={styles.mineBoard}>
+      <View style={styles.mineCell}>
+        <Text style={styles.mineNumber}>1</Text>
+      </View>
+      <View style={styles.mineCellOpen}>
+        <Text style={styles.mineNumberTwo}>2</Text>
+      </View>
+      <View style={styles.mineCell}>
+        <Text style={styles.mineFlag}>⚑</Text>
+      </View>
+      <View style={styles.mineCell}>
+        <Text style={styles.mineMark}>✹</Text>
+      </View>
+    </View>
+  );
+}
+
 export function GameArtwork({ theme }) {
   if (theme === 'blocks') {
     return <BlockArtwork />;
@@ -69,7 +129,23 @@ export function GameArtwork({ theme }) {
     return <MahjongArtwork />;
   }
 
-  return <PikachuArtwork />;
+  if (theme === 'pikachu') {
+    return <PikachuArtwork />;
+  }
+
+  if (theme === '2048') {
+    return <Game2048Artwork />;
+  }
+
+  if (theme === 'gomoku') {
+    return <GomokuArtwork />;
+  }
+
+  if (theme === 'sudoku') {
+    return <SudokuArtwork />;
+  }
+
+  return <MinesweeperArtwork />;
 }
 
 const styles = StyleSheet.create({
@@ -172,4 +248,120 @@ const styles = StyleSheet.create({
     height: 2,
     backgroundColor: '#FFFFFF',
   },
+  numberGrid: {
+    width: 112,
+    height: 112,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 5,
+    transform: [{ rotate: '-7deg' }],
+  },
+  numberTile: {
+    width: 51,
+    height: 51,
+    borderRadius: 9,
+    color: '#6D5038',
+    fontSize: 24,
+    lineHeight: 51,
+    fontWeight: '900',
+    textAlign: 'center',
+    overflow: 'hidden',
+  },
+  numberTileLight: { backgroundColor: '#F5E8D5' },
+  numberTileMedium: { backgroundColor: '#EBD5B7' },
+  numberTileStrong: { backgroundColor: '#D6AE7D' },
+  numberTileBright: { backgroundColor: '#C88E55', color: '#FFFFFF' },
+  gomokuBoard: {
+    width: 102,
+    height: 102,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#E8C989',
+    borderRadius: 12,
+  },
+  gomokuLineVertical: {
+    position: 'absolute',
+    width: 2,
+    height: 76,
+    backgroundColor: '#8C6635',
+  },
+  gomokuLineHorizontal: {
+    position: 'absolute',
+    width: 76,
+    height: 2,
+    backgroundColor: '#8C6635',
+  },
+  gomokuStone: {
+    position: 'absolute',
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+  },
+  gomokuStoneDark: { left: 23, top: 23, backgroundColor: '#26313A' },
+  gomokuStoneLight: {
+    right: 23,
+    top: 23,
+    backgroundColor: '#FFFDF3',
+    borderWidth: 1,
+    borderColor: '#A89370',
+  },
+  gomokuStoneDarkSecond: {
+    left: 23,
+    bottom: 23,
+    backgroundColor: '#26313A',
+  },
+  sudokuGrid: {
+    width: 104,
+    height: 104,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 3,
+    borderColor: '#4975A7',
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  sudokuCell: {
+    width: '33.33%',
+    height: '33.33%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRightWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: '#B7C9DC',
+  },
+  sudokuCellDivider: { backgroundColor: '#E2ECF6' },
+  sudokuDigit: { color: '#355E8C', fontSize: 18, fontWeight: '800' },
+  mineBoard: {
+    width: 102,
+    height: 102,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+    alignContent: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#AAB7B2',
+    borderRadius: 12,
+    padding: 10,
+  },
+  mineCell: {
+    width: 35,
+    height: 35,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#D8E2DE',
+    borderRadius: 5,
+  },
+  mineCellOpen: {
+    width: 35,
+    height: 35,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F3F6F4',
+    borderRadius: 5,
+  },
+  mineNumber: { color: '#2674C6', fontSize: 21, fontWeight: '900' },
+  mineNumberTwo: { color: '#36934E', fontSize: 21, fontWeight: '900' },
+  mineFlag: { color: '#D44D48', fontSize: 22, fontWeight: '900' },
+  mineMark: { color: '#303B38', fontSize: 24, fontWeight: '900' },
 });

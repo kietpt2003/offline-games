@@ -3,6 +3,7 @@ import React from 'react';
 import { Text, TextInput } from 'react-native';
 import ReactTestRenderer from 'react-test-renderer';
 
+import { games } from '../src/data/games';
 import { HomeScreen } from '../src/screens/HomeScreen';
 
 const PLAYER_NAME_KEY = '@offline-games/player-name-v1';
@@ -56,6 +57,38 @@ describe('HomeScreen player name', () => {
     });
 
     expect(await AsyncStorage.getItem(PLAYER_NAME_KEY)).toBe('Lan');
+
+    await ReactTestRenderer.act(async () => {
+      renderer.unmount();
+    });
+  });
+
+  it('opens each newly added game from its home card', async () => {
+    await AsyncStorage.setItem(PLAYER_NAME_KEY, 'Tester');
+    const onOpenGame = jest.fn();
+    let renderer;
+
+    await ReactTestRenderer.act(async () => {
+      renderer = ReactTestRenderer.create(
+        <HomeScreen appVersion="1.0" onOpenGame={onOpenGame} />,
+      );
+    });
+
+    const addedGames = games.filter(game =>
+      ['game-2048', 'gomoku', 'sudoku', 'minesweeper'].includes(game.id),
+    );
+
+    for (const game of addedGames) {
+      await ReactTestRenderer.act(() => {
+        renderer.root
+          .findByProps({ accessibilityLabel: `Chơi ${game.name}` })
+          .props.onPress();
+      });
+    }
+
+    expect(onOpenGame.mock.calls.map(([gameId]) => gameId)).toEqual(
+      addedGames.map(game => game.id),
+    );
 
     await ReactTestRenderer.act(async () => {
       renderer.unmount();
