@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { useEffect, useRef, useState } from 'react';
+import React from 'react';
 import {
   PanResponder,
   Pressable,
@@ -17,27 +17,62 @@ import {
   DIRECTIONS,
   moveGame,
 } from './game2048Engine';
+import { colors } from '../../themes/colors';
 
 const BEST_SCORE_KEY = '@offline-games/2048-best-score-v1';
 const BOARD_PADDING = 9;
 const CELL_GAP = 8;
 const TILE_COLORS = {
-  2: { background: '#F4EBDD', foreground: '#655B50' },
-  4: { background: '#EFE0C8', foreground: '#655B50' },
-  8: { background: '#F2B179', foreground: '#FFFFFF' },
-  16: { background: '#F59563', foreground: '#FFFFFF' },
-  32: { background: '#F67C5F', foreground: '#FFFFFF' },
-  64: { background: '#F65E3B', foreground: '#FFFFFF' },
-  128: { background: '#EDCF72', foreground: '#FFFFFF' },
-  256: { background: '#EBCB5F', foreground: '#FFFFFF' },
-  512: { background: '#E8C34D', foreground: '#FFFFFF' },
-  1024: { background: '#E6B93D', foreground: '#FFFFFF' },
-  2048: { background: '#E2AE2E', foreground: '#FFFFFF' },
+  2: {
+    background: colors.beige_F4EBDD,
+    foreground: colors.gray_655B50,
+  },
+  4: {
+    background: colors.beige_EFE0C8,
+    foreground: colors.gray_655B50,
+  },
+  8: { background: colors.orange_F2B179, foreground: colors.white_FFFFFF },
+  16: {
+    background: colors.orange_F59563,
+    foreground: colors.white_FFFFFF,
+  },
+  32: {
+    background: colors.red_F67C5F,
+    foreground: colors.white_FFFFFF,
+  },
+  64: {
+    background: colors.red_F65E3B,
+    foreground: colors.white_FFFFFF,
+  },
+  128: {
+    background: colors.orange_EDCF72,
+    foreground: colors.white_FFFFFF,
+  },
+  256: {
+    background: colors.orange_EBCB5F,
+    foreground: colors.white_FFFFFF,
+  },
+  512: {
+    background: colors.orange_E8C34D,
+    foreground: colors.white_FFFFFF,
+  },
+  1024: {
+    background: colors.brown_E6B93D,
+    foreground: colors.white_FFFFFF,
+  },
+  2048: {
+    background: colors.brown_E2AE2E,
+    foreground: colors.white_FFFFFF,
+  },
 };
 
 function ScoreCard({ label, score }) {
   return (
-    <View style={styles.scoreCard} accessible accessibilityLabel={`${label}: ${score}`}>
+    <View
+      style={styles.scoreCard}
+      accessible
+      accessibilityLabel={`${label}: ${score}`}
+    >
       <Text style={styles.scoreLabel}>{label}</Text>
       <Text style={styles.scoreValue}>{score}</Text>
     </View>
@@ -45,15 +80,17 @@ function ScoreCard({ label, score }) {
 }
 
 function GameTile({ value, tileSize }) {
-  const colors = TILE_COLORS[value] || {
-    background: '#3C3A32',
-    foreground: '#FFFFFF',
+  const tileColors = TILE_COLORS[value] || {
+    background: colors.gray_3C3A32,
+    foreground: colors.white_FFFFFF,
   };
   const fontSize = value >= 1024 ? tileSize * 0.32 : tileSize * 0.4;
   const cellStyle = {
     width: tileSize,
     height: tileSize,
-    backgroundColor: value ? colors.background : '#D7CBB9',
+    backgroundColor: value
+      ? tileColors.background
+      : colors.beige_D7CBB9,
   };
 
   return (
@@ -66,10 +103,7 @@ function GameTile({ value, tileSize }) {
         <Text
           adjustsFontSizeToFit
           numberOfLines={1}
-          style={[
-            styles.tileValue,
-            { color: colors.foreground, fontSize },
-          ]}
+          style={[styles.tileValue, { color: tileColors.foreground, fontSize }]}
         >
           {value}
         </Text>
@@ -109,13 +143,12 @@ export function Game2048Screen({ onBack }) {
     Math.min(windowWidth - 36, 440, windowHeight - 370),
   );
   const tileSize =
-    (boardSize - BOARD_PADDING * 2 - CELL_GAP * (BOARD_SIZE - 1)) /
-    BOARD_SIZE;
-  const [game, setGame] = useState(createGame);
-  const gameRef = useRef(game);
-  const [bestScore, setBestScore] = useState(0);
-  const [storageReady, setStorageReady] = useState(false);
-  const moveHandlerRef = useRef(null);
+    (boardSize - BOARD_PADDING * 2 - CELL_GAP * (BOARD_SIZE - 1)) / BOARD_SIZE;
+  const [game, setGame] = React.useState(createGame);
+  const gameRef = React.useRef(game);
+  const [bestScore, setBestScore] = React.useState(0);
+  const [storageReady, setStorageReady] = React.useState(false);
+  const moveHandlerRef = React.useRef(null);
 
   const updateGame = nextGame => {
     gameRef.current = nextGame;
@@ -138,7 +171,7 @@ export function Game2048Screen({ onBack }) {
 
   moveHandlerRef.current = handleMove;
 
-  const panResponder = useRef(
+  const panResponder = React.useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, gesture) =>
         Math.abs(gesture.dx) > 12 || Math.abs(gesture.dy) > 12,
@@ -161,7 +194,7 @@ export function Game2048Screen({ onBack }) {
     }),
   ).current;
 
-  useEffect(() => {
+  React.useEffect(() => {
     let isActive = true;
 
     AsyncStorage.getItem(BEST_SCORE_KEY)
@@ -183,7 +216,7 @@ export function Game2048Screen({ onBack }) {
     };
   }, []);
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (storageReady) {
       AsyncStorage.setItem(BEST_SCORE_KEY, String(bestScore)).catch(() => {});
     }
@@ -191,8 +224,7 @@ export function Game2048Screen({ onBack }) {
 
   const handleNewGame = () => updateGame(createGame());
   const handleContinue = () => updateGame(continueGame(gameRef.current));
-  const isGameFinished =
-    game.isGameOver || (game.isWon && !game.keepPlaying);
+  const isGameFinished = game.isGameOver || (game.isWon && !game.keepPlaying);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -321,7 +353,7 @@ export function Game2048Screen({ onBack }) {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FAF7F0',
+    backgroundColor: colors.beige_FAF7F0,
   },
   screen: {
     flex: 1,
@@ -342,10 +374,10 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#EEE7DC',
+    backgroundColor: colors.beige_EEE7DC,
   },
   backArrow: {
-    color: '#4E483F',
+    color: colors.gray_4E483F,
     fontSize: 35,
     lineHeight: 39,
     marginTop: -4,
@@ -355,14 +387,14 @@ const styles = StyleSheet.create({
     paddingLeft: 12,
   },
   title: {
-    color: '#4E483F',
+    color: colors.gray_4E483F,
     fontSize: 32,
     fontWeight: '900',
     letterSpacing: -1,
     lineHeight: 35,
   },
   subtitle: {
-    color: '#8D8377',
+    color: colors.gray_8D8377,
     fontSize: 12,
     fontWeight: '600',
     marginTop: 2,
@@ -371,10 +403,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     paddingVertical: 12,
     borderRadius: 13,
-    backgroundColor: '#6C8B68',
+    backgroundColor: colors.green_6C8B68,
   },
   newGameLabel: {
-    color: '#FFFFFF',
+    color: colors.white_FFFFFF,
     fontSize: 13,
     fontWeight: '800',
   },
@@ -397,16 +429,16 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     marginLeft: 8,
     borderRadius: 12,
-    backgroundColor: '#EDE6DB',
+    backgroundColor: colors.beige_EDE6DB,
   },
   scoreLabel: {
-    color: '#8D8377',
+    color: colors.gray_8D8377,
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 0.8,
   },
   scoreValue: {
-    color: '#514A40',
+    color: colors.gray_514A40,
     fontSize: 18,
     fontWeight: '900',
     marginTop: 2,
@@ -414,7 +446,7 @@ const styles = StyleSheet.create({
   board: {
     position: 'relative',
     borderRadius: 18,
-    backgroundColor: '#B9AA98',
+    backgroundColor: colors.orange_B9AA98,
     overflow: 'hidden',
   },
   boardRow: {
@@ -435,16 +467,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
-    backgroundColor: 'rgba(250, 247, 240, 0.88)',
+    backgroundColor: colors.beige_FAF7F0_88,
   },
   overlayTitle: {
-    color: '#514A40',
+    color: colors.gray_514A40,
     fontSize: 27,
     fontWeight: '900',
     textAlign: 'center',
   },
   overlayText: {
-    color: '#70665A',
+    color: colors.gray_70665A,
     fontSize: 14,
     fontWeight: '600',
     textAlign: 'center',
@@ -458,17 +490,17 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 12,
     marginTop: 8,
-    backgroundColor: '#6C8B68',
+    backgroundColor: colors.green_6C8B68,
   },
   overlayButtonText: {
-    color: '#FFFFFF',
+    color: colors.white_FFFFFF,
     fontSize: 14,
     fontWeight: '800',
   },
   instruction: {
     maxWidth: 310,
     marginTop: 15,
-    color: '#7D7367',
+    color: colors.gray_7D7367,
     fontSize: 13,
     fontWeight: '600',
     lineHeight: 19,
@@ -488,10 +520,10 @@ const styles = StyleSheet.create({
     marginHorizontal: 5,
     marginVertical: 3,
     borderRadius: 13,
-    backgroundColor: '#EDE6DB',
+    backgroundColor: colors.beige_EDE6DB,
   },
   directionArrow: {
-    color: '#514A40',
+    color: colors.gray_514A40,
     fontSize: 24,
     fontWeight: '800',
   },

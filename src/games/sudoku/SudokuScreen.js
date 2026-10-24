@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React from 'react';
 import {
   Pressable,
   ScrollView,
@@ -10,6 +10,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { createPuzzle, getConflicts, isComplete } from './sudokuEngine';
+import { colors } from '../../themes/colors';
 
 const DIFFICULTY_LABELS = {
   easy: 'Dễ',
@@ -30,13 +31,17 @@ function findFirstEmpty(grid) {
 
 export function SudokuScreen({ onBack }) {
   const { width } = useWindowDimensions();
-  const boardSize = Math.min(width - 32, 480);
+  const boardSize = 2 * Math.min(width - 32, 480);
   const cellSize = boardSize / 9;
-  const [difficulty, setDifficulty] = useState('easy');
-  const [game, setGame] = useState(() => createPuzzle('easy'));
-  const [grid, setGrid] = useState(() => game.puzzle.map(row => [...row]));
-  const [selected, setSelected] = useState(() => findFirstEmpty(game.puzzle));
-  const conflicts = useMemo(() => getConflicts(grid), [grid]);
+  const [difficulty, setDifficulty] = React.useState('easy');
+  const [game, setGame] = React.useState(() => createPuzzle('easy'));
+  const [grid, setGrid] = React.useState(() =>
+    game.puzzle.map(row => [...row]),
+  );
+  const [selected, setSelected] = React.useState(() =>
+    findFirstEmpty(game.puzzle),
+  );
+  const conflicts = React.useMemo(() => getConflicts(grid), [grid]);
   const completed = isComplete(grid, game.solution);
   const selectedValue = selected ? grid[selected.row][selected.column] : 0;
   const selectedIsEditable =
@@ -99,7 +104,9 @@ export function SudokuScreen({ onBack }) {
           </Pressable>
           <Text style={styles.eyebrow}>TƯ DUY CON SỐ</Text>
           <Text style={styles.title}>Sudoku</Text>
-          <Text style={styles.subtitle}>Điền số vào từng hàng, cột và ô vuông.</Text>
+          <Text style={styles.subtitle}>
+            Điền số vào từng hàng, cột và ô vuông.
+          </Text>
         </View>
 
         <View
@@ -132,76 +139,88 @@ export function SudokuScreen({ onBack }) {
           ))}
         </View>
 
-        <View
-          accessibilityLabel="Bàn Sudoku"
-          style={[styles.board, { width: boardSize, height: boardSize }]}
+        <ScrollView
+          horizontal
+          nestedScrollEnabled
+          style={styles.boardScroller}
+          contentContainerStyle={styles.boardScrollContent}
+          accessibilityLabel="Bàn Sudoku có thể cuộn ngang"
+          showsHorizontalScrollIndicator
         >
-          {grid.map((row, rowIndex) => (
-            <View key={`row-${rowIndex}`} style={styles.boardRow}>
-              {row.map((value, columnIndex) => {
-                const key = `${rowIndex}-${columnIndex}`;
-                const isGiven = game.puzzle[rowIndex][columnIndex] !== 0;
-                const isSelected =
-                  selected?.row === rowIndex &&
-                  selected?.column === columnIndex;
-                const isConflict = conflicts.has(key);
-                const isSameValue = Boolean(value && value === selectedValue);
+          <View
+            accessibilityLabel="Bàn Sudoku"
+            style={[styles.board, { width: boardSize, height: boardSize }]}
+          >
+            {grid.map((row, rowIndex) => (
+              <View key={`row-${rowIndex}`} style={styles.boardRow}>
+                {row.map((value, columnIndex) => {
+                  const key = `${rowIndex}-${columnIndex}`;
+                  const isGiven = game.puzzle[rowIndex][columnIndex] !== 0;
+                  const isSelected =
+                    selected?.row === rowIndex &&
+                    selected?.column === columnIndex;
+                  const isConflict = conflicts.has(key);
+                  const isSameValue = Boolean(value && value === selectedValue);
 
-                return (
-                  <Pressable
-                    key={key}
-                    accessibilityRole="button"
-                    accessibilityLabel={[
-                      `Hàng ${rowIndex + 1}, cột ${columnIndex + 1}`,
-                      value ? `số ${value}` : 'ô trống',
-                      isGiven ? 'số cho sẵn' : 'có thể điền',
-                      isConflict ? 'bị trùng' : '',
-                    ]
-                      .filter(Boolean)
-                      .join(', ')}
-                    accessibilityState={{
-                      selected: isSelected,
-                      disabled: completed,
-                    }}
-                    disabled={completed}
-                    onPress={() =>
-                      setSelected({ row: rowIndex, column: columnIndex })
-                    }
-                    style={[
-                      styles.cell,
-                      { width: cellSize, height: cellSize },
-                      isRelatedCell(rowIndex, columnIndex)
-                        ? styles.relatedCell
-                        : null,
-                      isSameValue ? styles.sameValueCell : null,
-                      isSelected ? styles.selectedCell : null,
-                      isConflict ? styles.conflictCell : null,
-                      columnIndex % 3 === 2 && columnIndex !== 8
-                        ? styles.boxRightBorder
-                        : null,
-                      rowIndex % 3 === 2 && rowIndex !== 8
-                        ? styles.boxBottomBorder
-                        : null,
-                    ]}
-                  >
-                    <Text
+                  return (
+                    <Pressable
+                      key={key}
+                      accessibilityRole="button"
+                      accessibilityLabel={[
+                        `Hàng ${rowIndex + 1}, cột ${columnIndex + 1}`,
+                        value ? `số ${value}` : 'ô trống',
+                        isGiven ? 'số cho sẵn' : 'có thể điền',
+                        isConflict ? 'bị trùng' : '',
+                      ]
+                        .filter(Boolean)
+                        .join(', ')}
+                      accessibilityState={{
+                        selected: isSelected,
+                        disabled: completed,
+                      }}
+                      disabled={completed}
+                      onPress={() =>
+                        setSelected({ row: rowIndex, column: columnIndex })
+                      }
                       style={[
-                        styles.cellText,
-                        {
-                          fontSize: Math.max(15, Math.min(26, cellSize * 0.54)),
-                        },
-                        isGiven ? styles.givenText : styles.enteredText,
-                        isConflict ? styles.conflictText : null,
+                        styles.cell,
+                        { width: cellSize, height: cellSize },
+                        isRelatedCell(rowIndex, columnIndex)
+                          ? styles.relatedCell
+                          : null,
+                        isSameValue ? styles.sameValueCell : null,
+                        isSelected ? styles.selectedCell : null,
+                        isConflict ? styles.conflictCell : null,
+                        columnIndex % 3 === 2 && columnIndex !== 8
+                          ? styles.boxRightBorder
+                          : null,
+                        rowIndex % 3 === 2 && rowIndex !== 8
+                          ? styles.boxBottomBorder
+                          : null,
                       ]}
                     >
-                      {value || ''}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          ))}
-        </View>
+                      <Text
+                        style={[
+                          styles.cellText,
+                          {
+                            fontSize: Math.max(
+                              36,
+                              Math.min(64, cellSize * 0.66),
+                            ),
+                          },
+                          isGiven ? styles.givenText : styles.enteredText,
+                          isConflict ? styles.conflictText : null,
+                        ]}
+                      >
+                        {value || ''}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            ))}
+          </View>
+        </ScrollView>
 
         <Text
           accessibilityLiveRegion="polite"
@@ -250,9 +269,9 @@ export function SudokuScreen({ onBack }) {
 
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`Tạo câu đố mới mức ${
-            DIFFICULTY_LABELS[difficulty].toLowerCase()
-          }`}
+          accessibilityLabel={`Tạo câu đố mới mức ${DIFFICULTY_LABELS[
+            difficulty
+          ].toLowerCase()}`}
           onPress={() => startNewPuzzle(difficulty)}
           style={({ pressed }) => [
             styles.newPuzzleButton,
@@ -269,7 +288,7 @@ export function SudokuScreen({ onBack }) {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F4F7F5',
+    backgroundColor: colors.green_F4F7F5,
   },
   scrollContent: {
     alignItems: 'center',
@@ -283,52 +302,57 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   backButton: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
+    alignSelf: 'flex-start',
     minHeight: 42,
     flexDirection: 'row',
     alignItems: 'center',
     paddingRight: 10,
   },
   backArrow: {
-    color: '#285C53',
+    color: colors.teal_285C53,
     fontSize: 32,
     lineHeight: 34,
     marginRight: 4,
   },
   backText: {
-    color: '#285C53',
-    fontSize: 15,
-    fontWeight: '600',
+    color: colors.teal_285C53,
+    fontSize: 18,
+    fontWeight: '700',
   },
   eyebrow: {
-    color: '#658179',
-    fontSize: 11,
+    color: colors.teal_285C53,
+    fontSize: 14,
     fontWeight: '700',
     letterSpacing: 1.8,
     marginTop: 8,
   },
   title: {
-    color: '#193B34',
-    fontSize: 32,
+    color: colors.teal_193B34,
+    fontSize: 36,
     fontWeight: '800',
     marginTop: 2,
   },
   subtitle: {
-    color: '#647871',
-    fontSize: 14,
+    color: colors.teal_285C53,
+    fontSize: 18,
+    lineHeight: 26,
+    fontWeight: '600',
+    textAlign: 'center',
     marginTop: 2,
   },
   difficultyRow: {
+    width: '100%',
+    maxWidth: 480,
     flexDirection: 'row',
-    backgroundColor: '#E6ECE9',
+    backgroundColor: colors.green_E6ECE9,
     borderRadius: 14,
     padding: 4,
     marginBottom: 16,
   },
   difficultyButton: {
-    minWidth: 90,
+    flex: 1,
+    minWidth: 0,
+    minHeight: 48,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 11,
@@ -336,27 +360,35 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
   },
   activeDifficulty: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.white_FFFFFF,
     elevation: 1,
-    shadowColor: '#203B34',
+    shadowColor: colors.green_203B34,
     shadowOpacity: 0.1,
     shadowRadius: 3,
     shadowOffset: { width: 0, height: 1 },
   },
   difficultyText: {
-    color: '#65766F',
-    fontSize: 14,
-    fontWeight: '600',
+    color: colors.teal_285C53,
+    fontSize: 18,
+    fontWeight: '800',
   },
   activeDifficultyText: {
-    color: '#285C53',
+    color: colors.teal_285C53,
     fontWeight: '800',
+  },
+  boardScroller: {
+    width: '100%',
+    flexGrow: 0,
+  },
+  boardScrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
   },
   board: {
     flexDirection: 'column',
     borderWidth: 2,
-    borderColor: '#244B42',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.teal_244B42,
+    backgroundColor: colors.white_FFFFFF,
     alignSelf: 'center',
   },
   boardRow: {
@@ -368,57 +400,59 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRightWidth: StyleSheet.hairlineWidth,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderColor: '#C8D3CF',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.gray_C8D3CF,
+    backgroundColor: colors.white_FFFFFF,
   },
   relatedCell: {
-    backgroundColor: '#EDF3F0',
+    backgroundColor: colors.green_EDF3F0,
   },
   sameValueCell: {
-    backgroundColor: '#DCEBE5',
+    backgroundColor: colors.green_DCEBE5,
   },
   selectedCell: {
-    backgroundColor: '#C5E6D9',
+    backgroundColor: colors.green_C5E6D9,
     borderWidth: 2,
-    borderColor: '#278263',
+    borderColor: colors.green_278263,
     zIndex: 1,
   },
   conflictCell: {
-    backgroundColor: '#FBE2DE',
+    backgroundColor: colors.pink_FBE2DE,
   },
   boxRightBorder: {
     borderRightWidth: 2,
-    borderRightColor: '#58756C',
+    borderRightColor: colors.green_58756C,
   },
   boxBottomBorder: {
     borderBottomWidth: 2,
-    borderBottomColor: '#58756C',
+    borderBottomColor: colors.green_58756C,
   },
   cellText: {
-    color: '#21473D',
+    color: colors.green_21473D,
     textAlign: 'center',
+    includeFontPadding: false,
   },
   givenText: {
-    color: '#193B34',
-    fontWeight: '800',
+    color: colors.teal_193B34,
+    fontWeight: '900',
   },
   enteredText: {
-    color: '#27745A',
-    fontWeight: '600',
+    color: colors.green_27745A,
+    fontWeight: '800',
   },
   conflictText: {
-    color: '#B33A2E',
+    color: colors.red_B33A2E,
   },
   message: {
     minHeight: 38,
-    color: '#647871',
-    fontSize: 14,
-    fontWeight: '500',
+    color: colors.teal_285C53,
+    fontSize: 18,
+    lineHeight: 26,
+    fontWeight: '700',
     textAlign: 'center',
     paddingTop: 12,
   },
   successMessage: {
-    color: '#18734E',
+    color: colors.green_18734E,
     fontWeight: '800',
   },
   numberPad: {
@@ -434,50 +468,53 @@ const styles = StyleSheet.create({
     width: '17%',
     minWidth: 48,
     maxWidth: 72,
-    height: 48,
+    minHeight: 60,
+    paddingVertical: 8,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.white_FFFFFF,
     borderWidth: 1,
-    borderColor: '#DCE5E1',
+    borderColor: colors.green_DCE5E1,
   },
   numberButtonPressed: {
-    backgroundColor: '#DCEBE5',
+    backgroundColor: colors.green_DCEBE5,
     transform: [{ scale: 0.97 }],
   },
   numberButtonText: {
-    color: '#285C53',
-    fontSize: 21,
-    fontWeight: '700',
+    color: colors.teal_285C53,
+    fontSize: 28,
+    fontWeight: '800',
   },
   eraseButton: {
     width: '37%',
     minWidth: 110,
-    height: 48,
+    minHeight: 60,
+    paddingVertical: 8,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 12,
-    backgroundColor: '#E7ECE9',
+    backgroundColor: colors.gray_E7ECE9,
   },
   eraseText: {
-    color: '#52675F',
-    fontSize: 15,
-    fontWeight: '700',
+    color: colors.gray_52675F,
+    fontSize: 18,
+    fontWeight: '800',
   },
   newPuzzleButton: {
     width: '100%',
     maxWidth: 480,
-    minHeight: 48,
+    minHeight: 56,
+    padding: 12,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 14,
-    backgroundColor: '#285C53',
+    backgroundColor: colors.teal_285C53,
     marginTop: 14,
   },
   newPuzzleText: {
-    color: '#FFFFFF',
-    fontSize: 16,
+    color: colors.white_FFFFFF,
+    fontSize: 20,
     fontWeight: '800',
   },
   pressed: {

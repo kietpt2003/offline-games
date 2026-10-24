@@ -1,5 +1,6 @@
 import React from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
+import { colors } from '../themes/colors';
 
 const PIKACHU_PREVIEW = require('../games/pikachu/assets/tile_01.png');
 
@@ -164,12 +165,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   blueBlock: {
-    backgroundColor: '#E5B46F',
-    borderColor: '#FFFFFFAA',
+    backgroundColor: colors.orange_E5B46F,
+    borderColor: colors.white_FFFFFFAA,
   },
   emptyBlock: {
-    backgroundColor: 'transparent',
-    borderColor: 'transparent',
+    backgroundColor: colors.transparent,
+    borderColor: colors.transparent,
   },
   mahjongGroup: {
     width: 92,
@@ -182,9 +183,9 @@ const styles = StyleSheet.create({
     borderRadius: 9,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFF9EA',
+    backgroundColor: colors.beige_FFF9EA,
     borderBottomWidth: 5,
-    borderBottomColor: '#E3D7B8',
+    borderBottomColor: colors.beige_E3D7B8,
   },
   mahjongTileBack: {
     left: 4,
@@ -197,7 +198,7 @@ const styles = StyleSheet.create({
     transform: [{ rotate: '8deg' }],
   },
   mahjongCharacter: {
-    color: '#E45454',
+    color: colors.red_E45454,
     fontSize: 26,
     fontWeight: '900',
   },
@@ -211,9 +212,9 @@ const styles = StyleSheet.create({
     width: 13,
     height: 13,
     borderRadius: 7,
-    backgroundColor: '#2FA77C',
+    backgroundColor: colors.green_2FA77C,
     borderWidth: 2,
-    borderColor: '#176A52',
+    borderColor: colors.green_176A52,
   },
   pikachuGroup: {
     flexDirection: 'row',
@@ -225,9 +226,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFE268',
+    backgroundColor: colors.orange_FFE268,
     borderWidth: 3,
-    borderColor: '#FFF4B8',
+    borderColor: colors.yellow_FFF4B8,
   },
   pikachuImage: {
     width: 38,
@@ -241,12 +242,12 @@ const styles = StyleSheet.create({
     width: 5,
     height: 5,
     borderRadius: 3,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.white_FFFFFF,
   },
   connectorLine: {
     width: 14,
     height: 2,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.white_FFFFFF,
   },
   numberGrid: {
     width: 112,
@@ -260,36 +261,45 @@ const styles = StyleSheet.create({
     width: 51,
     height: 51,
     borderRadius: 9,
-    color: '#6D5038',
+    color: colors.brown_6D5038,
     fontSize: 24,
     lineHeight: 51,
     fontWeight: '900',
     textAlign: 'center',
     overflow: 'hidden',
   },
-  numberTileLight: { backgroundColor: '#F5E8D5' },
-  numberTileMedium: { backgroundColor: '#EBD5B7' },
-  numberTileStrong: { backgroundColor: '#D6AE7D' },
-  numberTileBright: { backgroundColor: '#C88E55', color: '#FFFFFF' },
+  numberTileLight: {
+    backgroundColor: colors.beige_F5E8D5,
+  },
+  numberTileMedium: {
+    backgroundColor: colors.beige_EBD5B7,
+  },
+  numberTileStrong: {
+    backgroundColor: colors.orange_D6AE7D,
+  },
+  numberTileBright: {
+    backgroundColor: colors.brown_C88E55,
+    color: colors.white_FFFFFF,
+  },
   gomokuBoard: {
     width: 102,
     height: 102,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#E8C989',
+    backgroundColor: colors.orange_E8C989,
     borderRadius: 12,
   },
   gomokuLineVertical: {
     position: 'absolute',
     width: 2,
     height: 76,
-    backgroundColor: '#8C6635',
+    backgroundColor: colors.brown_8C6635,
   },
   gomokuLineHorizontal: {
     position: 'absolute',
     width: 76,
     height: 2,
-    backgroundColor: '#8C6635',
+    backgroundColor: colors.brown_8C6635,
   },
   gomokuStone: {
     position: 'absolute',
@@ -297,27 +307,31 @@ const styles = StyleSheet.create({
     height: 22,
     borderRadius: 11,
   },
-  gomokuStoneDark: { left: 23, top: 23, backgroundColor: '#26313A' },
+  gomokuStoneDark: {
+    left: 23,
+    top: 23,
+    backgroundColor: colors.blue_26313A,
+  },
   gomokuStoneLight: {
     right: 23,
     top: 23,
-    backgroundColor: '#FFFDF3',
+    backgroundColor: colors.yellow_FFFDF3,
     borderWidth: 1,
-    borderColor: '#A89370',
+    borderColor: colors.brown_A89370,
   },
   gomokuStoneDarkSecond: {
     left: 23,
     bottom: 23,
-    backgroundColor: '#26313A',
+    backgroundColor: colors.blue_26313A,
   },
   sudokuGrid: {
     width: 104,
     height: 104,
     flexDirection: 'row',
     flexWrap: 'wrap',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.white_FFFFFF,
     borderWidth: 3,
-    borderColor: '#4975A7',
+    borderColor: colors.blue_4975A7,
     borderRadius: 8,
     overflow: 'hidden',
   },
@@ -328,10 +342,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRightWidth: 1,
     borderBottomWidth: 1,
-    borderColor: '#B7C9DC',
+    borderColor: colors.blue_B7C9DC,
   },
-  sudokuCellDivider: { backgroundColor: '#E2ECF6' },
-  sudokuDigit: { color: '#355E8C', fontSize: 18, fontWeight: '800' },
+  sudokuCellDivider: {
+    backgroundColor: colors.blue_E2ECF6,
+  },
+  sudokuDigit: {
+    color: colors.blue_355E8C,
+    fontSize: 18,
+    fontWeight: '800',
+  },
   mineBoard: {
     width: 102,
     height: 102,
@@ -340,7 +360,7 @@ const styles = StyleSheet.create({
     gap: 4,
     alignContent: 'center',
     justifyContent: 'center',
-    backgroundColor: '#AAB7B2',
+    backgroundColor: colors.gray_AAB7B2,
     borderRadius: 12,
     padding: 10,
   },
@@ -349,7 +369,7 @@ const styles = StyleSheet.create({
     height: 35,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#D8E2DE',
+    backgroundColor: colors.green_D8E2DE,
     borderRadius: 5,
   },
   mineCellOpen: {
@@ -357,11 +377,27 @@ const styles = StyleSheet.create({
     height: 35,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F3F6F4',
+    backgroundColor: colors.green_F3F6F4,
     borderRadius: 5,
   },
-  mineNumber: { color: '#2674C6', fontSize: 21, fontWeight: '900' },
-  mineNumberTwo: { color: '#36934E', fontSize: 21, fontWeight: '900' },
-  mineFlag: { color: '#D44D48', fontSize: 22, fontWeight: '900' },
-  mineMark: { color: '#303B38', fontSize: 24, fontWeight: '900' },
+  mineNumber: {
+    color: colors.blue_2674C6,
+    fontSize: 21,
+    fontWeight: '900',
+  },
+  mineNumberTwo: {
+    color: colors.green_36934E,
+    fontSize: 21,
+    fontWeight: '900',
+  },
+  mineFlag: {
+    color: colors.red_D44D48,
+    fontSize: 22,
+    fontWeight: '900',
+  },
+  mineMark: {
+    color: colors.gray_303B38,
+    fontSize: 24,
+    fontWeight: '900',
+  },
 });

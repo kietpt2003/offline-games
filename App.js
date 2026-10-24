@@ -14,6 +14,7 @@ import MinesweeperScreen from './src/games/minesweeper/MinesweeperScreen';
 import { PikachuScreen } from './src/games/pikachu/PikachuScreen';
 import { SudokuScreen } from './src/games/sudoku/SudokuScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
+import { colors } from './src/themes/colors';
 
 function App({ appVersion }) {
   const [activeGame, setActiveGame] = React.useState(null);
@@ -30,10 +31,10 @@ function App({ appVersion }) {
         barStyle={isPlayingBlockBlast ? 'light-content' : 'dark-content'}
         backgroundColor={
           isPlayingBlockBlast
-            ? '#673719'
+            ? colors.brown_673719
             : isPlayingMahjong || isPlayingPikachu
-            ? '#F3FBF7'
-            : '#F7F8FC'
+            ? colors.green_F3FBF7
+            : colors.blue_F7F8FC
         }
       />
       {isPlayingBlockBlast ? (

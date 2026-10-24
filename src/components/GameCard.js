@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { GameArtwork } from './GameArtwork';
 import { IconPlay } from '../icons';
+import { colors } from '../themes/colors';
 
 export function GameCard({ game, onPress }) {
   return (
@@ -36,7 +37,7 @@ export function GameCard({ game, onPress }) {
         </View>
 
         <View style={styles.playButton}>
-          <IconPlay width={13} height={13} color="#343A52" />
+          <IconPlay width={13} height={13} color={colors.blue_343A52} />
         </View>
       </View>
     </Pressable>
@@ -51,7 +52,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     justifyContent: 'space-between',
     padding: 14,
-    shadowColor: '#20263A',
+    shadowColor: colors.blue_20263A,
     shadowOffset: { width: 0, height: 7 },
     shadowOpacity: 0.16,
     shadowRadius: 12,
@@ -85,22 +86,24 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   title: {
-    color: '#263650',
+    color: colors.blue_263650,
     fontSize: 16,
     fontWeight: '800',
     letterSpacing: -0.3,
   },
   description: {
     marginTop: 3,
-    color: '#607087',
+    color: colors.blue_607087,
     fontSize: 11,
     fontWeight: '500',
   },
   playButton: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: '#FFFFFF',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    flexShrink: 0,
+    overflow: 'hidden',
+    backgroundColor: colors.white_FFFFFF,
     alignItems: 'center',
     justifyContent: 'center',
   },

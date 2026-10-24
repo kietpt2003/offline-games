@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Pressable,
   ScrollView,
@@ -15,6 +15,7 @@ import {
   makeComputerMove,
   makeMove,
 } from './gomokuEngine';
+import { colors } from '../../themes/colors';
 
 const CELL_GAP = 1;
 const CELL_MIN_SIZE = 20;
@@ -22,12 +23,14 @@ const CELL_MAX_SIZE = 36;
 
 export function GomokuScreen({ onBack }) {
   const { width } = useWindowDimensions();
-  const [game, setGame] = useState(createGameState);
-  const [mode, setMode] = useState('single');
-  const cellSize = Math.max(
-    CELL_MIN_SIZE,
-    Math.min(CELL_MAX_SIZE, Math.floor((width - 32) / BOARD_SIZE)),
-  );
+  const [game, setGame] = React.useState(createGameState);
+  const [mode, setMode] = React.useState('single');
+  const cellSize =
+    2 *
+    Math.max(
+      CELL_MIN_SIZE,
+      Math.min(CELL_MAX_SIZE, Math.floor((width - 32) / BOARD_SIZE)),
+    );
   const boardExtent = BOARD_SIZE * cellSize + (BOARD_SIZE - 1) * CELL_GAP;
   const isFinished = Boolean(game.winner) || game.draw;
   const status = game.winner
@@ -150,7 +153,9 @@ export function GomokuScreen({ onBack }) {
 
         <ScrollView
           horizontal
+          style={styles.boardScroller}
           contentContainerStyle={styles.boardScrollContent}
+          nestedScrollEnabled
           showsHorizontalScrollIndicator
         >
           <View
@@ -169,9 +174,9 @@ export function GomokuScreen({ onBack }) {
                   <Pressable
                     key={column}
                     accessibilityRole="button"
-                    accessibilityLabel={`Hàng ${row + 1}, cột ${
-                      column + 1
-                    }, ${cell ? `quân ${cell}` : 'ô trống'}`}
+                    accessibilityLabel={`Hàng ${row + 1}, cột ${column + 1}, ${
+                      cell ? `quân ${cell}` : 'ô trống'
+                    }`}
                     accessibilityState={{
                       disabled: isFinished || Boolean(cell),
                     }}
@@ -210,7 +215,7 @@ export function GomokuScreen({ onBack }) {
           </View>
         </ScrollView>
         <Text style={styles.boardHint}>
-          Vuốt ngang bàn cờ nếu không vừa màn hình.
+          Vuốt ngang hoặc dọc để xem toàn bộ bàn cờ.
         </Text>
         {isFinished ? (
           <Pressable
@@ -233,7 +238,7 @@ export function GomokuScreen({ onBack }) {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F7F4EC',
+    backgroundColor: colors.beige_F7F4EC,
   },
   header: {
     minHeight: 56,
@@ -242,7 +247,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#D8D2C5',
+    borderBottomColor: colors.beige_D8D2C5,
   },
   headerButton: {
     minHeight: 44,
@@ -254,22 +259,22 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   backIcon: {
-    color: '#274D42',
+    color: colors.green_274D42,
     fontSize: 30,
     lineHeight: 34,
     marginRight: 2,
   },
   headerButtonText: {
-    color: '#274D42',
+    color: colors.green_274D42,
     fontSize: 15,
     fontWeight: '600',
   },
   resetButton: {
     minWidth: 86,
-    backgroundColor: '#E6EDE5',
+    backgroundColor: colors.green_E6EDE5,
   },
   title: {
-    color: '#253D35',
+    color: colors.green_253D35,
     fontSize: 21,
     fontWeight: '700',
   },
@@ -293,48 +298,52 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#C8D5CC',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.green_C8D5CC,
+    backgroundColor: colors.white_FFFFFF,
   },
   selectedModeButton: {
-    backgroundColor: '#315E4E',
-    borderColor: '#315E4E',
+    backgroundColor: colors.green_315E4E,
+    borderColor: colors.green_315E4E,
   },
   modeButtonText: {
-    color: '#274D42',
+    color: colors.green_274D42,
     fontSize: 15,
     fontWeight: '700',
   },
   modeHint: {
     marginTop: 2,
-    color: '#65665F',
+    color: colors.gray_65665F,
     fontSize: 12,
   },
   selectedModeText: {
-    color: '#FFFFFF',
+    color: colors.white_FFFFFF,
   },
   status: {
-    color: '#274D42',
+    color: colors.green_274D42,
     fontSize: 27,
     fontWeight: '700',
     textAlign: 'center',
   },
   finishedStatus: {
-    color: '#A44C19',
+    color: colors.brown_A44C19,
   },
   instructions: {
     marginTop: 7,
     marginBottom: 20,
-    color: '#595B54',
+    color: colors.gray_595B54,
     fontSize: 15,
     textAlign: 'center',
+  },
+  boardScroller: {
+    width: '100%',
+    flexGrow: 0,
   },
   boardScrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
   },
   board: {
-    backgroundColor: '#6E5330',
+    backgroundColor: colors.brown_6E5330,
     borderRadius: 5,
     overflow: 'hidden',
   },
@@ -346,12 +355,12 @@ const styles = StyleSheet.create({
     marginBottom: CELL_GAP,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#EBCB8B',
-    borderColor: '#9B7742',
+    backgroundColor: colors.orange_EBCB8B,
+    borderColor: colors.brown_9B7742,
     borderWidth: StyleSheet.hairlineWidth,
   },
   cellPressed: {
-    backgroundColor: '#F5DDA8',
+    backgroundColor: colors.beige_F5DDA8,
   },
   mark: {
     fontWeight: '900',
@@ -360,14 +369,14 @@ const styles = StyleSheet.create({
     textAlignVertical: 'center',
   },
   xMark: {
-    color: '#254E73',
+    color: colors.blue_254E73,
   },
   oMark: {
-    color: '#A33E39',
+    color: colors.red_A33E39,
   },
   boardHint: {
     marginTop: 12,
-    color: '#65665F',
+    color: colors.gray_65665F,
     fontSize: 13,
     textAlign: 'center',
   },
@@ -378,10 +387,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 12,
-    backgroundColor: '#315E4E',
+    backgroundColor: colors.green_315E4E,
   },
   playAgainText: {
-    color: '#FFFFFF',
+    color: colors.white_FFFFFF,
     fontSize: 16,
     fontWeight: '700',
   },

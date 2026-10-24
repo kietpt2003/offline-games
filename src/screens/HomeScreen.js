@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { useEffect, useMemo, useState } from 'react';
+import React from 'react';
 import {
   FlatList,
   Keyboard,
@@ -22,6 +22,7 @@ import {
   MAX_PLAYER_NAME_LENGTH,
   normalizePlayerName,
 } from './homeGreeting';
+import { colors } from '../themes/colors';
 
 const PLAYER_NAME_KEY = '@offline-games/player-name-v1';
 
@@ -36,16 +37,16 @@ function normalizeSearch(value) {
 }
 
 export function HomeScreen({ appVersion, onOpenGame }) {
-  const [searchText, setSearchText] = useState('');
-  const [playerName, setPlayerName] = useState('');
-  const [draftName, setDraftName] = useState('');
-  const [nameError, setNameError] = useState('');
-  const [isNameHydrated, setIsNameHydrated] = useState(false);
-  const [isNameModalVisible, setIsNameModalVisible] = useState(false);
-  const [isSavingName, setIsSavingName] = useState(false);
-  const [currentHour, setCurrentHour] = useState(() => new Date().getHours());
+  const [searchText, setSearchText] = React.useState('');
+  const [playerName, setPlayerName] = React.useState('');
+  const [draftName, setDraftName] = React.useState('');
+  const [nameError, setNameError] = React.useState('');
+  const [isNameHydrated, setIsNameHydrated] = React.useState(false);
+  const [isNameModalVisible, setIsNameModalVisible] = React.useState(false);
+  const [isSavingName, setIsSavingName] = React.useState(false);
+  const [currentHour, setCurrentHour] = React.useState(() => new Date().getHours());
 
-  useEffect(() => {
+  React.useEffect(() => {
     let isActive = true;
 
     AsyncStorage.getItem(PLAYER_NAME_KEY)
@@ -79,7 +80,7 @@ export function HomeScreen({ appVersion, onOpenGame }) {
     };
   }, []);
 
-  useEffect(() => {
+  React.useEffect(() => {
     const timer = setInterval(() => {
       setCurrentHour(new Date().getHours());
     }, 60_000);
@@ -87,7 +88,7 @@ export function HomeScreen({ appVersion, onOpenGame }) {
     return () => clearInterval(timer);
   }, []);
 
-  const filteredGames = useMemo(() => {
+  const filteredGames = React.useMemo(() => {
     const keyword = normalizeSearch(searchText);
 
     if (!keyword) {
@@ -198,7 +199,11 @@ export function HomeScreen({ appVersion, onOpenGame }) {
                     {playerName ? `${greeting}, ${playerName}!` : greeting}
                   </Text>
                   {!!playerName && (
-                    <IconEdit width={17} height={17} color="#69718A" />
+                    <IconEdit
+                      width={17}
+                      height={17}
+                      color={colors.blue_69718A}
+                    />
                   )}
                 </Pressable>
               </View>
@@ -210,13 +215,17 @@ export function HomeScreen({ appVersion, onOpenGame }) {
             </View>
 
             <View style={styles.searchContainer}>
-              <IconSearch width={24} height={24} color="#5E657B" />
+              <IconSearch
+                width={24}
+                height={24}
+                color={colors.blue_5E657B}
+              />
               <TextInput
                 accessibilityLabel="Tìm kiếm game"
                 value={searchText}
                 onChangeText={setSearchText}
                 placeholder="Tìm kiếm tên game..."
-                placeholderTextColor="#9298AA"
+                placeholderTextColor={colors.blue_9298AA}
                 returnKeyType="search"
                 autoCorrect={false}
                 style={styles.searchInput}
@@ -230,7 +239,11 @@ export function HomeScreen({ appVersion, onOpenGame }) {
                   onPress={() => setSearchText('')}
                   style={styles.clearButton}
                 >
-                  <IconClose width={16} height={16} color="#6F768B" />
+                  <IconClose
+                    width={16}
+                    height={16}
+                    color={colors.gray_6F768B}
+                  />
                 </Pressable>
               ) : null}
             </View>
@@ -243,7 +256,11 @@ export function HomeScreen({ appVersion, onOpenGame }) {
         }
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <IconSearch width={52} height={52} color="#A4A9B8" />
+            <IconSearch
+              width={52}
+              height={52}
+              color={colors.blue_A4A9B8}
+            />
             <Text style={styles.emptyTitle}>Không tìm thấy game</Text>
             <Text style={styles.emptyDescription}>
               Thử tìm với một tên khác nhé.
@@ -280,7 +297,7 @@ export function HomeScreen({ appVersion, onOpenGame }) {
               editable={!isSavingName}
               maxLength={MAX_PLAYER_NAME_LENGTH}
               placeholder="Tên người chơi"
-              placeholderTextColor="#9298AA"
+              placeholderTextColor={colors.blue_9298AA}
               returnKeyType="done"
               value={draftName}
               onChangeText={value => {
@@ -333,7 +350,7 @@ export function HomeScreen({ appVersion, onOpenGame }) {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F7F8FC',
+    backgroundColor: colors.blue_F7F8FC,
   },
   listContent: {
     paddingHorizontal: 20,
@@ -362,14 +379,14 @@ const styles = StyleSheet.create({
     paddingRight: 12,
   },
   eyebrow: {
-    color: '#69718A',
+    color: colors.blue_69718A,
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 1.4,
   },
   heading: {
     flexShrink: 1,
-    color: '#22263A',
+    color: colors.blue_22263A,
     fontSize: 27,
     lineHeight: 33,
     fontWeight: '900',
@@ -388,16 +405,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 7,
     borderRadius: 20,
-    backgroundColor: '#E4F7EF',
+    backgroundColor: colors.green_E4F7EF,
   },
   offlineDot: {
     width: 7,
     height: 7,
     borderRadius: 4,
-    backgroundColor: '#1EAC7E',
+    backgroundColor: colors.green_1EAC7E,
   },
   offlineText: {
-    color: '#16815F',
+    color: colors.green_16815F,
     fontSize: 12,
     fontWeight: '700',
   },
@@ -408,10 +425,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 18,
     paddingHorizontal: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.white_FFFFFF,
     borderWidth: 1,
-    borderColor: '#ECEEF5',
-    shadowColor: '#22263A',
+    borderColor: colors.blue_ECEEF5,
+    shadowColor: colors.blue_22263A,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.05,
     shadowRadius: 10,
@@ -422,7 +439,7 @@ const styles = StyleSheet.create({
     height: '100%',
     marginLeft: 10,
     paddingVertical: 0,
-    color: '#252A3D',
+    color: colors.blue_252A3D,
     fontSize: 15,
     fontWeight: '500',
   },
@@ -432,7 +449,7 @@ const styles = StyleSheet.create({
     borderRadius: 13,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#EFF1F6',
+    backgroundColor: colors.blue_EFF1F6,
   },
   sectionHeader: {
     marginTop: 28,
@@ -442,12 +459,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   sectionTitle: {
-    color: '#2A2E42',
+    color: colors.blue_2A2E42,
     fontSize: 18,
     fontWeight: '800',
   },
   gameCount: {
-    color: '#858B9E',
+    color: colors.gray_858B9E,
     fontSize: 13,
     fontWeight: '600',
   },
@@ -457,46 +474,46 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     marginTop: 10,
-    color: '#34384C',
+    color: colors.blue_34384C,
     fontSize: 17,
     fontWeight: '800',
   },
   emptyDescription: {
     marginTop: 6,
-    color: '#858B9E',
+    color: colors.gray_858B9E,
     fontSize: 14,
   },
   version: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    color: '#858B9E',
+    color: colors.gray_858B9E,
     fontSize: 12,
     textAlign: 'center',
-    backgroundColor: '#F7F8FC',
+    backgroundColor: colors.blue_F7F8FC,
   },
   modalBackdrop: {
     flex: 1,
     padding: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#171A32B8',
+    backgroundColor: colors.blue_171A32B8,
   },
   nameCard: {
     width: '100%',
     maxWidth: 360,
     padding: 24,
     borderRadius: 26,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.white_FFFFFF,
   },
   nameTitle: {
-    color: '#22263A',
+    color: colors.blue_22263A,
     fontSize: 24,
     fontWeight: '900',
     textAlign: 'center',
   },
   nameDescription: {
     marginTop: 8,
-    color: '#69718A',
+    color: colors.blue_69718A,
     fontSize: 14,
     lineHeight: 20,
     textAlign: 'center',
@@ -507,18 +524,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#DDE0EA',
-    color: '#252A3D',
+    borderColor: colors.blue_DDE0EA,
+    color: colors.blue_252A3D,
     fontSize: 16,
     fontWeight: '600',
-    backgroundColor: '#F8F9FC',
+    backgroundColor: colors.blue_F8F9FC,
   },
   nameInputError: {
-    borderColor: '#D95757',
+    borderColor: colors.red_D95757,
   },
   nameError: {
     marginTop: 7,
-    color: '#C94848',
+    color: colors.red_C94848,
     fontSize: 12,
     fontWeight: '600',
   },
@@ -534,11 +551,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#DDE0EA',
-    backgroundColor: '#F4F5F9',
+    borderColor: colors.blue_DDE0EA,
+    backgroundColor: colors.blue_F4F5F9,
   },
   cancelNameText: {
-    color: '#60677D',
+    color: colors.blue_60677D,
     fontSize: 13,
     fontWeight: '900',
     letterSpacing: 0.7,
@@ -549,10 +566,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 16,
-    backgroundColor: '#5D67D8',
+    backgroundColor: colors.blue_5D67D8,
   },
   saveNameText: {
-    color: '#FFFFFF',
+    color: colors.white_FFFFFF,
     fontSize: 13,
     fontWeight: '900',
     letterSpacing: 0.7,

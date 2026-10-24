@@ -1,3 +1,5 @@
+import { colors } from '../../themes/colors';
+
 export const BOARD_SIZE = 7;
 
 const SHAPE_TEMPLATES = [
@@ -81,7 +83,7 @@ const SHAPE_TEMPLATES = [
   ],
 ];
 
-export const BLOCK_COLOR = '#E5B46F';
+export const BLOCK_COLOR = colors.orange_E5B46F;
 const PIECE_COLORS = [BLOCK_COLOR];
 
 export function createEmptyBoard() {

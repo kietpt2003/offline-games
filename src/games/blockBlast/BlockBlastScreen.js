@@ -1,11 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React from 'react';
 import {
   Animated,
   AppState,
   Modal,
   PanResponder,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   useWindowDimensions,
@@ -41,6 +42,7 @@ import {
   saveBlockBlastState,
 } from './blockBlastStorage';
 import { createBlockBlastAudio } from './blockBlastAudio';
+import { colors } from '../../themes/colors';
 
 const BOARD_PADDING = 6;
 const BOARD_BORDER_WIDTH = 5;
@@ -94,15 +96,36 @@ function DraggablePiece({
   onDragCancel,
   boardCellSize,
 }) {
-  const pan = useRef(new Animated.ValueXY()).current;
-  const [isDragging, setIsDragging] = useState(false);
-  const [isReturning, setIsReturning] = useState(false);
+  const pan = React.useRef(new Animated.ValueXY()).current;
+  const [isDragging, setIsDragging] = React.useState(false);
+  const [isReturning, setIsReturning] = React.useState(false);
+  const [slotSize, setSlotSize] = React.useState(null);
+  const pieceBounds = piece ? getPieceBounds(piece) : null;
+  const previewCellSize =
+    slotSize && pieceBounds
+      ? Math.max(
+          1,
+          Math.min(
+            PIECE_CELL_SIZE,
+            Math.floor(
+              (slotSize.width -
+                4 -
+                (pieceBounds.columns - 1) * PIECE_CELL_GAP) /
+                pieceBounds.columns,
+            ),
+            Math.floor(
+              (slotSize.height - 4 - (pieceBounds.rows - 1) * PIECE_CELL_GAP) /
+                pieceBounds.rows,
+            ),
+          ),
+        )
+      : PIECE_CELL_SIZE;
   const isDisabled = !piece || !canFit;
-  const interactionRef = useRef(null);
-  const slotRef = useRef(null);
-  const slotWindowLayoutRef = useRef(null);
-  const dragFrameRef = useRef(null);
-  const pendingDragRef = useRef(null);
+  const interactionRef = React.useRef(null);
+  const slotRef = React.useRef(null);
+  const slotWindowLayoutRef = React.useRef(null);
+  const dragFrameRef = React.useRef(null);
+  const pendingDragRef = React.useRef(null);
 
   interactionRef.current = {
     index,
@@ -182,7 +205,7 @@ function DraggablePiece({
     });
   };
 
-  const panResponder = useRef(
+  const panResponder = React.useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, gestureState) =>
         !interactionRef.current.isDisabled &&
@@ -239,7 +262,11 @@ function DraggablePiece({
     <View
       ref={slotRef}
       {...panResponder.panHandlers}
-      onLayout={measureSlot}
+      onLayout={event => {
+        const { width, height } = event.nativeEvent.layout;
+        setSlotSize({ width, height });
+        measureSlot();
+      }}
       style={[styles.draggablePiece, isDragging ? styles.draggingPiece : null]}
     >
       <View
@@ -267,7 +294,7 @@ function DraggablePiece({
           <PiecePreview
             piece={piece}
             cellGap={isDragging ? CELL_GAP : PIECE_CELL_GAP}
-            cellSize={isDragging ? boardCellSize : PIECE_CELL_SIZE}
+            cellSize={isDragging ? boardCellSize : previewCellSize}
           />
         </Animated.View>
       </View>
@@ -315,11 +342,12 @@ function WoodBackdrop() {
 
 export function BlockBlastScreen({ onBack }) {
   const { width: windowWidth } = useWindowDimensions();
-  const boardRef = useRef(null);
-  const boardLayoutRef = useRef(null);
-  const dragPreviewRef = useRef(null);
-  const persistenceQueueRef = useRef(Promise.resolve());
-  const audioRef = useRef(null);
+  const [isDraggingPiece, setIsDraggingPiece] = React.useState(false);
+  const boardRef = React.useRef(null);
+  const boardLayoutRef = React.useRef(null);
+  const dragPreviewRef = React.useRef(null);
+  const persistenceQueueRef = React.useRef(Promise.resolve());
+  const audioRef = React.useRef(null);
   const boardSize = Math.min(windowWidth - 4, 450);
   const cellSize = Math.floor(
     (boardSize -
@@ -328,20 +356,20 @@ export function BlockBlastScreen({ onBack }) {
       BOARD_SIZE,
   );
 
-  const [board, setBoard] = useState(createEmptyBoard);
-  const [pieces, setPieces] = useState(() => generatePieceSet());
-  const [score, setScore] = useState(0);
-  const [bestScore, setBestScore] = useState(0);
-  const [message, setMessage] = useState('Kéo một khối lên bàn để chơi');
-  const [isGameOver, setIsGameOver] = useState(false);
-  const [combo, setCombo] = useState(0);
-  const [dragPreview, setDragPreview] = useState(null);
-  const [undoHistory, setUndoHistory] = useState([]);
-  const [isHydrated, setIsHydrated] = useState(false);
-  const [soundEnabled, setSoundEnabled] = useState(true);
-  const [isSoundHydrated, setIsSoundHydrated] = useState(false);
+  const [board, setBoard] = React.useState(createEmptyBoard);
+  const [pieces, setPieces] = React.useState(() => generatePieceSet());
+  const [score, setScore] = React.useState(0);
+  const [bestScore, setBestScore] = React.useState(0);
+  const [message, setMessage] = React.useState('Kéo một khối lên bàn để chơi');
+  const [isGameOver, setIsGameOver] = React.useState(false);
+  const [combo, setCombo] = React.useState(0);
+  const [dragPreview, setDragPreview] = React.useState(null);
+  const [undoHistory, setUndoHistory] = React.useState([]);
+  const [isHydrated, setIsHydrated] = React.useState(false);
+  const [soundEnabled, setSoundEnabled] = React.useState(true);
+  const [isSoundHydrated, setIsSoundHydrated] = React.useState(false);
 
-  useEffect(() => {
+  React.useEffect(() => {
     const audio = createBlockBlastAudio(false);
     audio.setAppActive(AppState.currentState === 'active');
     const appStateSubscription = AppState.addEventListener(
@@ -358,7 +386,7 @@ export function BlockBlastScreen({ onBack }) {
     };
   }, []);
 
-  useEffect(() => {
+  React.useEffect(() => {
     let isActive = true;
 
     AsyncStorage.getItem(SOUND_KEY)
@@ -379,7 +407,7 @@ export function BlockBlastScreen({ onBack }) {
     };
   }, []);
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (!isSoundHydrated) {
       return;
     }
@@ -388,7 +416,7 @@ export function BlockBlastScreen({ onBack }) {
     AsyncStorage.setItem(SOUND_KEY, String(soundEnabled)).catch(() => {});
   }, [isSoundHydrated, soundEnabled]);
 
-  useEffect(() => {
+  React.useEffect(() => {
     let isActive = true;
 
     loadBlockBlastState()
@@ -432,7 +460,7 @@ export function BlockBlastScreen({ onBack }) {
     };
   }, []);
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (!isHydrated) {
       return;
     }
@@ -461,7 +489,7 @@ export function BlockBlastScreen({ onBack }) {
     undoHistory,
   ]);
 
-  const previewCellKeys = useMemo(() => {
+  const previewCellKeys = React.useMemo(() => {
     if (!dragPreview?.isValid) {
       return new Set();
     }
@@ -484,7 +512,7 @@ export function BlockBlastScreen({ onBack }) {
     }, new Set());
   }, [dragPreview, pieces]);
 
-  const clearingCellKeys = useMemo(() => {
+  const clearingCellKeys = React.useMemo(() => {
     if (!dragPreview?.isValid) {
       return new Set();
     }
@@ -536,6 +564,7 @@ export function BlockBlastScreen({ onBack }) {
   };
 
   const clearDragPreview = () => {
+    setIsDraggingPiece(false);
     dragPreviewRef.current = null;
     setDragPreview(null);
   };
@@ -647,6 +676,7 @@ export function BlockBlastScreen({ onBack }) {
   };
 
   const handleDragStart = () => {
+    setIsDraggingPiece(true);
     setMessage('Di chuyển khối đến vị trí muốn đặt');
     measureBoard();
   };
@@ -709,7 +739,10 @@ export function BlockBlastScreen({ onBack }) {
 
   if (!isHydrated) {
     return (
-      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+      <SafeAreaView
+        style={styles.safeArea}
+        edges={['top', 'left', 'right', 'bottom']}
+      >
         <View style={styles.loadingContainer}>
           <Text style={styles.loadingText}>Đang tải ván chơi...</Text>
         </View>
@@ -718,136 +751,168 @@ export function BlockBlastScreen({ onBack }) {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+    <SafeAreaView
+      style={styles.safeArea}
+      edges={['top', 'left', 'right', 'bottom']}
+    >
       <View style={styles.container}>
-        <WoodBackdrop />
-        <View style={styles.header}>
-          <View style={styles.headerSide}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Quay lại danh sách game"
-              hitSlop={10}
-              onPress={onBack}
-              style={({ pressed }) => [
-                styles.headerButton,
-                pressed ? styles.buttonPressed : null,
-              ]}
-            >
-              <IconChevronLeft width={27} height={27} color="#4A2613" />
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={
-                soundEnabled ? 'Tắt âm thanh' : 'Bật âm thanh'
-              }
-              accessibilityState={{ disabled: !isSoundHydrated }}
-              disabled={!isSoundHydrated}
-              hitSlop={6}
-              onPress={toggleSound}
-              style={({ pressed }) => [
-                styles.headerButton,
-                !isSoundHydrated ? styles.disabledHeaderButton : null,
-                pressed ? styles.buttonPressed : null,
-              ]}
-            >
-              {soundEnabled ? (
-                <IconVolume width={22} height={22} color="#4A2613" />
-              ) : (
-                <IconMuted width={22} height={22} color="#4A2613" />
-              )}
-            </Pressable>
-          </View>
-
-          <View style={styles.titleGroup}>
-            <Text style={styles.title}>BLOCK BLAST</Text>
-            <Text style={styles.subtitle}>XẾP KHỐI • XOÁ HÀNG</Text>
-          </View>
-
-          <View style={[styles.headerSide, styles.headerActions]}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Hoàn tác nước đi gần nhất"
-              accessibilityState={{ disabled: undoHistory.length === 0 }}
-              disabled={undoHistory.length === 0}
-              hitSlop={6}
-              onPress={handleUndo}
-              style={({ pressed }) => [
-                styles.headerButton,
-                undoHistory.length === 0 ? styles.disabledHeaderButton : null,
-                pressed ? styles.buttonPressed : null,
-              ]}
-            >
-              <IconUndo width={23} height={23} color="#4A2613" />
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Chơi lại"
-              hitSlop={6}
-              onPress={startNewGame}
-              style={({ pressed }) => [
-                styles.headerButton,
-                pressed ? styles.buttonPressed : null,
-              ]}
-            >
-              <IconRestart width={24} height={24} color="#4A2613" />
-            </Pressable>
-          </View>
-        </View>
-
-        <View style={styles.scoreRow}>
-          <ScoreCard label="ĐIỂM" value={score} />
-          <View style={styles.scoreDivider} />
-          <ScoreCard label="KỶ LỤC" value={bestScore} />
-        </View>
-
-        <Text numberOfLines={1} style={styles.message}>
-          {message}
-        </Text>
-
-        <View
-          ref={boardRef}
-          accessibilityLabel={`Bàn chơi Block Blast ${BOARD_SIZE} nhân ${BOARD_SIZE}`}
-          onLayout={measureBoard}
-          style={[
-            styles.board,
-            {
-              width: boardSize,
-              height: boardSize,
-              gap: CELL_GAP,
-              padding: BOARD_PADDING,
-            },
-          ]}
+        <ScrollView
+          style={styles.playArea}
+          contentContainerStyle={styles.playAreaContent}
+          scrollEnabled={!isDraggingPiece}
+          onScroll={measureBoard}
+          scrollEventThrottle={16}
         >
-          {board.map((boardRow, rowIndex) => (
-            <View key={rowIndex} style={[styles.boardRow, { gap: CELL_GAP }]}>
-              {boardRow.map((cellColor, columnIndex) => (
-                <View
-                  key={`${rowIndex}-${columnIndex}`}
-                  accessibilityLabel={`Ô hàng ${rowIndex + 1}, cột ${
-                    columnIndex + 1
-                  }${cellColor ? ', đã có khối' : ', đang trống'}`}
-                  style={[
-                    styles.boardCell,
-                    { width: cellSize, height: cellSize },
-                    cellColor ? { backgroundColor: BLOCK_COLOR } : null,
-                    previewCellKeys.has(`${rowIndex}-${columnIndex}`)
-                      ? [
-                          styles.previewCell,
-                          {
-                            backgroundColor: BLOCK_COLOR,
-                            borderColor: '#FFFFFF',
-                          },
-                        ]
-                      : null,
-                    clearingCellKeys.has(`${rowIndex}-${columnIndex}`)
-                      ? styles.clearingCell
-                      : null,
-                  ]}
+          <WoodBackdrop />
+          <View style={styles.header}>
+            <View style={styles.headerSide}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Quay lại danh sách game"
+                hitSlop={10}
+                onPress={onBack}
+                style={({ pressed }) => [
+                  styles.headerButton,
+                  pressed ? styles.buttonPressed : null,
+                ]}
+              >
+                <IconChevronLeft
+                  width={27}
+                  height={27}
+                  color={colors.brown_4A2613}
                 />
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={
+                  soundEnabled ? 'Tắt âm thanh' : 'Bật âm thanh'
+                }
+                accessibilityState={{ disabled: !isSoundHydrated }}
+                disabled={!isSoundHydrated}
+                hitSlop={6}
+                onPress={toggleSound}
+                style={({ pressed }) => [
+                  styles.headerButton,
+                  !isSoundHydrated ? styles.disabledHeaderButton : null,
+                  pressed ? styles.buttonPressed : null,
+                ]}
+              >
+                {soundEnabled ? (
+                  <IconVolume
+                    width={22}
+                    height={22}
+                    color={colors.brown_4A2613}
+                  />
+                ) : (
+                  <IconMuted
+                    width={22}
+                    height={22}
+                    color={colors.brown_4A2613}
+                  />
+                )}
+              </Pressable>
+            </View>
+
+            <View style={styles.titleGroup}>
+              <Text style={styles.title}>BLOCK BLAST</Text>
+              <Text style={styles.subtitle}>XẾP KHỐI • XOÁ HÀNG</Text>
+            </View>
+
+            <View style={[styles.headerSide, styles.headerActions]}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Hoàn tác nước đi gần nhất"
+                accessibilityState={{ disabled: undoHistory.length === 0 }}
+                disabled={undoHistory.length === 0}
+                hitSlop={6}
+                onPress={handleUndo}
+                style={({ pressed }) => [
+                  styles.headerButton,
+                  undoHistory.length === 0 ? styles.disabledHeaderButton : null,
+                  pressed ? styles.buttonPressed : null,
+                ]}
+              >
+                <IconUndo width={23} height={23} color={colors.brown_4A2613} />
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Chơi lại"
+                hitSlop={6}
+                onPress={startNewGame}
+                style={({ pressed }) => [
+                  styles.headerButton,
+                  pressed ? styles.buttonPressed : null,
+                ]}
+              >
+                <IconRestart
+                  width={24}
+                  height={24}
+                  color={colors.brown_4A2613}
+                />
+              </Pressable>
+            </View>
+          </View>
+
+          <View style={styles.scoreRow}>
+            <ScoreCard label="ĐIỂM" value={score} />
+            <View style={styles.scoreDivider} />
+            <ScoreCard label="KỶ LỤC" value={bestScore} />
+          </View>
+
+          <Text numberOfLines={1} style={styles.message}>
+            {message}
+          </Text>
+
+          <View style={styles.boardArea}>
+            <View
+              ref={boardRef}
+              accessibilityLabel={`Bàn chơi Block Blast ${BOARD_SIZE} nhân ${BOARD_SIZE}`}
+              onLayout={measureBoard}
+              style={[
+                styles.board,
+                {
+                  width: boardSize,
+                  height: boardSize,
+                  gap: CELL_GAP,
+                  padding: BOARD_PADDING,
+                },
+              ]}
+            >
+              {board.map((boardRow, rowIndex) => (
+                <View
+                  key={rowIndex}
+                  style={[styles.boardRow, { gap: CELL_GAP }]}
+                >
+                  {boardRow.map((cellColor, columnIndex) => (
+                    <View
+                      key={`${rowIndex}-${columnIndex}`}
+                      accessibilityLabel={`Ô hàng ${rowIndex + 1}, cột ${
+                        columnIndex + 1
+                      }${cellColor ? ', đã có khối' : ', đang trống'}`}
+                      style={[
+                        styles.boardCell,
+                        { width: cellSize, height: cellSize },
+                        cellColor ? { backgroundColor: BLOCK_COLOR } : null,
+                        previewCellKeys.has(`${rowIndex}-${columnIndex}`)
+                          ? [
+                              styles.previewCell,
+                              {
+                                backgroundColor: BLOCK_COLOR,
+                                borderColor: colors.white_FFFFFF,
+                              },
+                            ]
+                          : null,
+                        clearingCellKeys.has(`${rowIndex}-${columnIndex}`)
+                          ? styles.clearingCell
+                          : null,
+                      ]}
+                    />
+                  ))}
+                </View>
               ))}
             </View>
-          ))}
-        </View>
+          </View>
+        </ScrollView>
 
         <View style={styles.trayHeader}>
           <Text style={styles.trayTitle}>KHỐI CỦA BẠN</Text>
@@ -881,7 +946,7 @@ export function BlockBlastScreen({ onBack }) {
         <View style={styles.modalBackdrop}>
           <View style={styles.gameOverCard}>
             <View style={styles.gameOverIcon}>
-              <IconBlocks width={28} height={28} color="#5B2D17" />
+              <IconBlocks width={28} height={28} color={colors.brown_5B2D17} />
             </View>
             <Text style={styles.gameOverTitle}>Hết nước đi!</Text>
             <Text style={styles.gameOverScore}>Bạn đạt {score} điểm</Text>
@@ -896,7 +961,7 @@ export function BlockBlastScreen({ onBack }) {
                 pressed ? styles.buttonPressed : null,
               ]}
             >
-              <IconUndo width={20} height={20} color="#FFFFFF" />
+              <IconUndo width={20} height={20} color={colors.white_FFFFFF} />
               <Text style={styles.undoGameOverText}>HOÀN TÁC</Text>
             </Pressable>
             <Pressable
@@ -926,15 +991,24 @@ export function BlockBlastScreen({ onBack }) {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#673719',
+    backgroundColor: colors.brown_673719,
   },
   container: {
     flex: 1,
     alignItems: 'center',
     paddingHorizontal: 2,
     paddingBottom: 16,
-    backgroundColor: '#A55F30',
+    backgroundColor: colors.brown_A55F30,
     overflow: 'hidden',
+  },
+  playArea: {
+    flex: 1,
+    width: '100%',
+  },
+  playAreaContent: {
+    flexGrow: 1,
+    alignItems: 'center',
+    paddingBottom: 12,
   },
   woodBackdrop: {
     ...StyleSheet.absoluteFillObject,
@@ -946,7 +1020,7 @@ const styles = StyleSheet.create({
     right: -30,
     height: 2,
     borderRadius: 2,
-    backgroundColor: '#6E351A24',
+    backgroundColor: colors.brown_6E351A24,
     transform: [{ rotate: '-1deg' }],
   },
   foliageOverlay: {
@@ -978,9 +1052,9 @@ const styles = StyleSheet.create({
     height: 20,
     borderTopLeftRadius: 20,
     borderBottomRightRadius: 20,
-    backgroundColor: '#315E25',
+    backgroundColor: colors.green_315E25,
     borderWidth: 1,
-    borderColor: '#214718',
+    borderColor: colors.green_214718,
   },
   leafOne: {
     top: 1,
@@ -990,7 +1064,7 @@ const styles = StyleSheet.create({
   leafTwo: {
     top: 23,
     left: 18,
-    backgroundColor: '#477A31',
+    backgroundColor: colors.green_477A31,
     transform: [{ rotate: '-20deg' }],
   },
   leafThree: {
@@ -1001,17 +1075,17 @@ const styles = StyleSheet.create({
   leafFour: {
     top: 38,
     left: 66,
-    backgroundColor: '#3D6C2C',
+    backgroundColor: colors.green_3D6C2C,
     transform: [{ rotate: '12deg' }],
   },
   loadingContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#A55F30',
+    backgroundColor: colors.brown_A55F30,
   },
   loadingText: {
-    color: '#FFE2A1',
+    color: colors.beige_FFE2A1,
     fontSize: 14,
     fontWeight: '700',
   },
@@ -1027,6 +1101,7 @@ const styles = StyleSheet.create({
     width: 88,
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
   },
   headerActions: {
     justifyContent: 'flex-end',
@@ -1038,9 +1113,9 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#C48849',
+    backgroundColor: colors.brown_C48849,
     borderWidth: 2,
-    borderColor: '#E0AF6B',
+    borderColor: colors.orange_E0AF6B,
   },
   disabledHeaderButton: {
     opacity: 0.35,
@@ -1054,19 +1129,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 5,
-    backgroundColor: '#683719',
+    backgroundColor: colors.brown_683719,
     borderWidth: 2,
-    borderColor: '#9D6334',
+    borderColor: colors.brown_9D6334,
   },
   title: {
-    color: '#FFD982',
+    color: colors.beige_FFD982,
     fontSize: 21,
     fontWeight: '900',
     letterSpacing: 1.1,
   },
   subtitle: {
     marginTop: 2,
-    color: '#E9BA72',
+    color: colors.orange_E9BA72,
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 1,
@@ -1080,10 +1155,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 6,
-    backgroundColor: '#B97538',
+    backgroundColor: colors.brown_B97538,
     borderWidth: 2,
-    borderColor: '#DAA15D',
-    shadowColor: '#3A180C',
+    borderColor: colors.orange_DAA15D,
+    shadowColor: colors.brown_3A180C,
     shadowOffset: { width: 0, height: 5 },
     shadowOpacity: 0.35,
     shadowRadius: 5,
@@ -1094,47 +1169,53 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   scoreLabel: {
-    color: '#5A2C16',
+    color: colors.brown_5A2C16,
     fontSize: 12,
     fontWeight: '800',
     letterSpacing: 1.2,
   },
   scoreValue: {
     marginTop: 1,
-    color: '#FFE18F',
+    color: colors.beige_FFE18F,
     fontSize: 31,
     lineHeight: 36,
     fontWeight: '900',
-    textShadowColor: '#673216',
+    textShadowColor: colors.brown_673216,
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 1,
   },
   scoreDivider: {
     width: 1,
     height: 34,
-    backgroundColor: '#6E371B66',
+    backgroundColor: colors.brown_6E371B66,
   },
   message: {
     width: '94%',
     height: 25,
     marginTop: 7,
     marginBottom: 5,
-    color: '#FFF3C8',
+    color: colors.beige_FFF3C8,
     fontSize: 13,
     lineHeight: 25,
     fontWeight: '800',
     textAlign: 'center',
     borderRadius: 13,
-    backgroundColor: '#D99625',
+    backgroundColor: colors.brown_D99625,
     borderWidth: 2,
-    borderColor: '#F0BF4D',
+    borderColor: colors.orange_F0BF4D,
+  },
+  boardArea: {
+    flexGrow: 1,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   board: {
     borderRadius: 7,
-    backgroundColor: '#35180D',
+    backgroundColor: colors.brown_35180D,
     borderWidth: BOARD_BORDER_WIDTH,
-    borderColor: '#7E431F',
-    shadowColor: '#271006',
+    borderColor: colors.brown_7E431F,
+    shadowColor: colors.brown_271006,
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.55,
     shadowRadius: 12,
@@ -1145,22 +1226,22 @@ const styles = StyleSheet.create({
   },
   boardCell: {
     borderRadius: 2,
-    backgroundColor: '#2B120A',
+    backgroundColor: colors.red_2B120A,
     borderWidth: 1,
-    borderColor: '#57301C',
+    borderColor: colors.brown_57301C,
   },
   previewCell: {
     opacity: 0.72,
     borderWidth: 2,
-    borderColor: '#FFFFFFAA',
+    borderColor: colors.white_FFFFFFAA,
   },
   clearingCell: {
     zIndex: 2,
     opacity: 1,
-    backgroundColor: '#FFE096',
+    backgroundColor: colors.beige_FFE096,
     borderWidth: 2,
-    borderColor: '#FFFFFF',
-    shadowColor: '#FFF1A8',
+    borderColor: colors.white_FFFFFF,
+    shadowColor: colors.yellow_FFF1A8,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.95,
     shadowRadius: 8,
@@ -1176,13 +1257,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   trayTitle: {
-    color: '#FFE0A0',
+    color: colors.beige_FFE0A0,
     fontSize: 14,
     fontWeight: '900',
     letterSpacing: 1.2,
   },
   trayHint: {
-    color: '#E9BC7C',
+    color: colors.orange_E9BC7C,
     fontSize: 13,
     fontWeight: '600',
   },
@@ -1192,10 +1273,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 9,
     padding: 6,
-    backgroundColor: '#8B4925',
+    backgroundColor: colors.brown_8B4925,
     borderTopWidth: 3,
     borderBottomWidth: 3,
-    borderColor: '#C17C3E',
+    borderColor: colors.brown_C17C3E,
   },
   draggablePiece: {
     flex: 1,
@@ -1213,9 +1294,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 5,
-    backgroundColor: '#6B351C66',
+    backgroundColor: colors.brown_6B351C66,
     borderWidth: 2,
-    borderColor: '#B66C35',
+    borderColor: colors.brown_B66C35,
     overflow: 'visible',
   },
   disabledPieceSlot: {
@@ -1230,20 +1311,20 @@ const styles = StyleSheet.create({
     height: PIECE_CELL_SIZE,
     borderRadius: 5,
     borderWidth: 1,
-    borderColor: '#FFF0C2',
+    borderColor: colors.beige_FFF0C2,
   },
   usedPiece: {
     width: 24,
     height: 3,
     borderRadius: 2,
-    backgroundColor: '#D29A5D',
+    backgroundColor: colors.brown_D29A5D,
   },
   modalBackdrop: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 28,
-    backgroundColor: '#281006CC',
+    backgroundColor: colors.brown_281006CC,
   },
   gameOverCard: {
     width: '100%',
@@ -1253,9 +1334,9 @@ const styles = StyleSheet.create({
     paddingTop: 28,
     paddingBottom: 20,
     borderRadius: 28,
-    backgroundColor: '#C18448',
+    backgroundColor: colors.brown_C18448,
     borderWidth: 1,
-    borderColor: '#E1AE6A',
+    borderColor: colors.orange_E1AE6A,
   },
   gameOverIcon: {
     width: 58,
@@ -1263,17 +1344,17 @@ const styles = StyleSheet.create({
     borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F3C779',
+    backgroundColor: colors.orange_F3C779,
   },
   gameOverTitle: {
     marginTop: 18,
-    color: '#4C2512',
+    color: colors.brown_4C2512,
     fontSize: 26,
     fontWeight: '900',
   },
   gameOverScore: {
     marginTop: 7,
-    color: '#684022',
+    color: colors.brown_684022,
     fontSize: 15,
     fontWeight: '600',
   },
@@ -1284,7 +1365,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 17,
-    backgroundColor: '#6B351B',
+    backgroundColor: colors.brown_6B351B,
   },
   undoGameOverButton: {
     width: '100%',
@@ -1295,18 +1376,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     borderRadius: 16,
-    backgroundColor: '#4B2412',
+    backgroundColor: colors.brown_4B2412,
     borderWidth: 1,
-    borderColor: '#8C572E',
+    borderColor: colors.brown_8C572E,
   },
   undoGameOverText: {
-    color: '#FFFFFF',
+    color: colors.white_FFFFFF,
     fontSize: 13,
     fontWeight: '900',
     letterSpacing: 0.8,
   },
   playAgainText: {
-    color: '#FFFFFF',
+    color: colors.white_FFFFFF,
     fontSize: 14,
     fontWeight: '900',
     letterSpacing: 1,
@@ -1316,7 +1397,7 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
   },
   leaveText: {
-    color: '#5E351C',
+    color: colors.brown_5E351C,
     fontSize: 13,
     fontWeight: '700',
   },

@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React from 'react';
 import {
   AppState,
   Image,
@@ -34,6 +34,7 @@ import {
   shuffleBoard,
 } from './pikachuEngine';
 import { createPikachuAudio } from './pikachuAudio';
+import { colors } from '../../themes/colors';
 
 const GAME_KEY = '@offline-games/pikachu-state-v2';
 const BEST_KEY = '@offline-games/pikachu-best-v1';
@@ -108,30 +109,30 @@ function IconButton({ label, icon, disabled = false, onPress }) {
         pressed ? styles.buttonPressed : null,
       ]}
     >
-      <Icon width={21} height={21} color="#285C53" />
+      <Icon width={21} height={21} color={colors.teal_285C53} />
     </Pressable>
   );
 }
 
 export function PikachuScreen({ onBack }) {
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
-  const initialLevel = useMemo(() => createLevel(1), []);
-  const [level, setLevel] = useState(1);
-  const [board, setBoard] = useState(initialLevel.board);
-  const [timeLeft, setTimeLeft] = useState(initialLevel.timeLeft);
-  const [score, setScore] = useState(0);
-  const [bestScore, setBestScore] = useState(0);
-  const [selected, setSelected] = useState(null);
-  const [hint, setHint] = useState([]);
-  const [connectionPath, setConnectionPath] = useState([]);
-  const [message, setMessage] = useState('Chọn hai hình giống nhau để nối');
-  const [isResolving, setIsResolving] = useState(false);
-  const [isHydrated, setIsHydrated] = useState(false);
-  const [levelComplete, setLevelComplete] = useState(false);
-  const [gameOver, setGameOver] = useState(false);
-  const [soundEnabled, setSoundEnabled] = useState(true);
-  const timeoutRef = useRef(null);
-  const audioRef = useRef(null);
+  const initialLevel = React.useMemo(() => createLevel(1), []);
+  const [level, setLevel] = React.useState(1);
+  const [board, setBoard] = React.useState(initialLevel.board);
+  const [timeLeft, setTimeLeft] = React.useState(initialLevel.timeLeft);
+  const [score, setScore] = React.useState(0);
+  const [bestScore, setBestScore] = React.useState(0);
+  const [selected, setSelected] = React.useState(null);
+  const [hint, setHint] = React.useState([]);
+  const [connectionPath, setConnectionPath] = React.useState([]);
+  const [message, setMessage] = React.useState('Chọn hai hình giống nhau để nối');
+  const [isResolving, setIsResolving] = React.useState(false);
+  const [isHydrated, setIsHydrated] = React.useState(false);
+  const [levelComplete, setLevelComplete] = React.useState(false);
+  const [gameOver, setGameOver] = React.useState(false);
+  const [soundEnabled, setSoundEnabled] = React.useState(true);
+  const timeoutRef = React.useRef(null);
+  const audioRef = React.useRef(null);
   const config = getLevelConfig(level);
   const remainingTiles = countRemainingTiles(board);
   const cellSize = Math.min(
@@ -156,13 +157,13 @@ export function PikachuScreen({ onBack }) {
     return boardGutter + (index - 0.5) * cellSize;
   };
 
-  useEffect(() => {
+  React.useEffect(() => {
     ScreenOrientation?.lockPortrait();
 
     return () => ScreenOrientation?.lockPortrait();
   }, []);
 
-  useEffect(() => {
+  React.useEffect(() => {
     Promise.all([
       AsyncStorage.getItem(GAME_KEY),
       AsyncStorage.getItem(BEST_KEY),
@@ -201,7 +202,7 @@ export function PikachuScreen({ onBack }) {
     return () => clearTimeout(timeoutRef.current);
   }, []);
 
-  useEffect(() => {
+  React.useEffect(() => {
     const audio = createPikachuAudio(soundEnabled);
     const appStateSubscription = AppState.addEventListener(
       'change',
@@ -219,7 +220,7 @@ export function PikachuScreen({ onBack }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
+  React.useEffect(() => {
     audioRef.current?.setEnabled(soundEnabled);
 
     if (isHydrated) {
@@ -227,7 +228,7 @@ export function PikachuScreen({ onBack }) {
     }
   }, [isHydrated, soundEnabled]);
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (!isHydrated || gameOver || levelComplete || isResolving) {
       return undefined;
     }
@@ -246,7 +247,7 @@ export function PikachuScreen({ onBack }) {
     return () => clearInterval(timer);
   }, [gameOver, isHydrated, isResolving, levelComplete]);
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (!isHydrated) {
       return;
     }
@@ -257,7 +258,7 @@ export function PikachuScreen({ onBack }) {
     ).catch(() => {});
   }, [board, isHydrated, level, score, timeLeft]);
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (score <= bestScore) {
       return;
     }
@@ -455,7 +456,11 @@ export function PikachuScreen({ onBack }) {
                 pressed ? styles.buttonPressed : null,
               ]}
             >
-              <IconHint width={18} height={18} color="#25846F" />
+              <IconHint
+                width={18}
+                height={18}
+                color={colors.teal_25846F}
+              />
               <Text style={styles.actionText}>Gợi ý</Text>
             </Pressable>
             <View style={styles.remainingBadge}>
@@ -469,7 +474,11 @@ export function PikachuScreen({ onBack }) {
                 pressed ? styles.buttonPressed : null,
               ]}
             >
-              <IconShuffle width={18} height={18} color="#25846F" />
+              <IconShuffle
+                width={18}
+                height={18}
+                color={colors.teal_25846F}
+              />
               <Text style={styles.actionText}>Xáo</Text>
             </Pressable>
           </View>
@@ -567,9 +576,17 @@ export function PikachuScreen({ onBack }) {
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
             {levelComplete ? (
-              <IconTrophy width={52} height={52} color="#20AD82" />
+              <IconTrophy
+                width={52}
+                height={52}
+                color={colors.green_20AD82}
+              />
             ) : (
-              <IconClock width={52} height={52} color="#E86D62" />
+              <IconClock
+                width={52}
+                height={52}
+                color={colors.red_E86D62}
+              />
             )}
             <Text style={styles.modalTitle}>
               {levelComplete ? `Qua cấp ${level}!` : 'Hết thời gian'}
@@ -602,12 +619,15 @@ export function PikachuScreen({ onBack }) {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#F2FBF7' },
+  safeArea: {
+    flex: 1,
+    backgroundColor: colors.green_F2FBF7,
+  },
   container: {
     flex: 1,
     alignItems: 'center',
     padding: 8,
-    backgroundColor: '#F2FBF7',
+    backgroundColor: colors.green_F2FBF7,
   },
   sidePanel: {
     width: '100%',
@@ -624,14 +644,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   title: {
-    color: '#214E47',
+    color: colors.teal_214E47,
     fontSize: 20,
     fontWeight: '900',
     letterSpacing: 1.5,
   },
   subtitle: {
     marginTop: 2,
-    color: '#6C9189',
+    color: colors.teal_6C9189,
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 1,
@@ -642,9 +662,9 @@ const styles = StyleSheet.create({
     borderRadius: 11,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.white_FFFFFF,
     borderWidth: 1,
-    borderColor: '#CFE5DC',
+    borderColor: colors.green_CFE5DC,
   },
   headerActions: { flexDirection: 'row', gap: 6 },
   disabledButton: { opacity: 0.35 },
@@ -657,9 +677,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 4,
     borderRadius: 17,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.white_FFFFFF,
     borderWidth: 1,
-    borderColor: '#D5E9E1',
+    borderColor: colors.green_D5E9E1,
   },
   statItem: {
     flex: 1,
@@ -668,23 +688,27 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   statLabel: {
-    color: '#71968E',
+    color: colors.teal_71968E,
     fontSize: 9,
     fontWeight: '800',
     letterSpacing: 1,
   },
   statValue: {
     marginTop: 1,
-    color: '#25846F',
+    color: colors.teal_25846F,
     fontSize: 17,
     fontWeight: '900',
   },
-  statDivider: { width: 1, height: 28, backgroundColor: '#DDECE7' },
-  dangerText: { color: '#FF8278' },
+  statDivider: {
+    width: 1,
+    height: 28,
+    backgroundColor: colors.green_DDECE7,
+  },
+  dangerText: { color: colors.red_FF8278 },
   message: {
     height: 32,
     lineHeight: 32,
-    color: '#567970',
+    color: colors.green_567970,
     fontSize: 12,
     fontWeight: '700',
     textAlign: 'center',
@@ -694,19 +718,19 @@ const styles = StyleSheet.create({
     marginTop: 6,
     overflow: 'visible',
     borderRadius: 20,
-    backgroundColor: '#DDEFE7',
+    backgroundColor: colors.green_DDEFE7,
     borderWidth: 2,
-    borderColor: '#BFDCCF',
+    borderColor: colors.green_BFDCCF,
   },
   tile: {
     position: 'absolute',
     padding: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F5DFC2',
+    backgroundColor: colors.beige_F5DFC2,
     borderWidth: 1,
-    borderColor: '#E4C39A',
-    shadowColor: '#315E54',
+    borderColor: colors.orange_E4C39A,
+    shadowColor: colors.teal_315E54,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.14,
     shadowRadius: 2,
@@ -714,14 +738,14 @@ const styles = StyleSheet.create({
   },
   tileImage: { width: '100%', height: '100%' },
   selectedTile: {
-    borderColor: '#FFD747',
-    backgroundColor: '#FFF2A6',
+    borderColor: colors.orange_FFD747,
+    backgroundColor: colors.yellow_FFF2A6,
     transform: [{ scale: 1.08 }],
     zIndex: 10,
   },
   hintedTile: {
-    borderColor: '#59E3FF',
-    backgroundColor: '#D6FAFF',
+    borderColor: colors.teal_59E3FF,
+    backgroundColor: colors.teal_D6FAFF,
     transform: [{ scale: 1.07 }],
     zIndex: 9,
   },
@@ -729,7 +753,7 @@ const styles = StyleSheet.create({
   pathSegment: {
     position: 'absolute',
     zIndex: 20,
-    backgroundColor: '#FFE35B',
+    backgroundColor: colors.orange_FFE35B,
   },
   footer: {
     width: '100%',
@@ -748,15 +772,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.white_FFFFFF,
     borderWidth: 1,
-    borderColor: '#CFE5DC',
+    borderColor: colors.green_CFE5DC,
   },
-  actionText: { color: '#25846F', fontSize: 13, fontWeight: '800' },
+  actionText: {
+    color: colors.teal_25846F,
+    fontSize: 13,
+    fontWeight: '800',
+  },
   remainingBadge: { width: 54, height: 42, alignItems: 'center' },
-  remainingValue: { color: '#25846F', fontSize: 19, fontWeight: '900' },
+  remainingValue: {
+    color: colors.teal_25846F,
+    fontSize: 19,
+    fontWeight: '900',
+  },
   remainingLabel: {
-    color: '#71968E',
+    color: colors.teal_71968E,
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 0.7,
@@ -766,7 +798,7 @@ const styles = StyleSheet.create({
     padding: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#285C5380',
+    backgroundColor: colors.teal_285C5380,
   },
   modalCard: {
     width: '100%',
@@ -774,17 +806,17 @@ const styles = StyleSheet.create({
     padding: 26,
     alignItems: 'center',
     borderRadius: 25,
-    backgroundColor: '#FFFDF2',
+    backgroundColor: colors.yellow_FFFDF2,
   },
   modalTitle: {
     marginTop: 8,
-    color: '#153E3B',
+    color: colors.teal_153E3B,
     fontSize: 25,
     fontWeight: '900',
   },
   modalDescription: {
     marginTop: 9,
-    color: '#58706D',
+    color: colors.teal_58706D,
     fontSize: 16,
     lineHeight: 24,
     textAlign: 'center',
@@ -796,10 +828,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 16,
-    backgroundColor: '#20AD82',
+    backgroundColor: colors.green_20AD82,
   },
   primaryButtonText: {
-    color: '#FFFFFF',
+    color: colors.white_FFFFFF,
     fontSize: 16,
     fontWeight: '900',
     letterSpacing: 0.7,

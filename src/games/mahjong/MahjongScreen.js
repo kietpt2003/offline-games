@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React from 'react';
 import {
   Animated,
   AppState,
@@ -32,15 +32,16 @@ import {
   shuffleRemainingTiles,
 } from './mahjongEngine';
 import { createMahjongAudio } from './mahjongAudio';
+import { colors } from '../../themes/colors';
 
 const MAX_UNDO_STEPS = 20;
 const SOUND_KEY = '@offline-games/mahjong-sound-enabled-v1';
 const MATCH_FLIP_DURATION = 320;
-const BLUE_INK = '#0A4A78';
-const GREEN_INK = '#08733E';
-const RED_INK = '#C62421';
+const BLUE_INK = colors.blue_0A4A78;
+const GREEN_INK = colors.green_08733E;
+const RED_INK = colors.red_C62421;
 
-function MahjongFace({ tile, tileWidth }) {
+function MahjongFace({ tile, tileWidth, disabled = false }) {
   const pipSize = Math.max(10, Math.round(tileWidth * 0.17));
   const bambooWidth = Math.max(7, Math.round(tileWidth * 0.11));
 
@@ -114,7 +115,11 @@ function MahjongFace({ tile, tileWidth }) {
   }
 
   if (tile.type === 'white') {
-    return <View style={styles.whiteDragon} />;
+    return (
+      <View
+        style={[styles.whiteDragon, disabled ? styles.lockedWhiteDragon : null]}
+      />
+    );
   }
 
   return (
@@ -125,6 +130,7 @@ function MahjongFace({ tile, tileWidth }) {
       <Text
         style={[
           styles.honorCharacter,
+          disabled ? styles.lockedHonorCharacter : null,
           {
             color:
               tile.key === 'red'
@@ -154,9 +160,11 @@ function MahjongTile({
   disabled,
   onPress,
 }) {
-  const flipProgress = useRef(new Animated.Value(isFaceDown ? 1 : 0)).current;
+  const flipProgress = React.useRef(
+    new Animated.Value(isFaceDown ? 1 : 0),
+  ).current;
 
-  useEffect(() => {
+  React.useEffect(() => {
     Animated.timing(flipProgress, {
       toValue: isFaceDown ? 1 : 0,
       duration: MATCH_FLIP_DURATION,
@@ -227,7 +235,11 @@ function MahjongTile({
             },
           ]}
         >
-          <MahjongFace tile={tile} tileWidth={tileWidth} />
+          <View
+            style={[styles.tileFace, !isFree ? styles.lockedTileFace : null]}
+          >
+            <MahjongFace tile={tile} tileWidth={tileWidth} disabled={!isFree} />
+          </View>
         </Animated.View>
         <Animated.View
           pointerEvents="none"
@@ -247,7 +259,9 @@ function MahjongTile({
           pointerEvents="none"
           style={[
             styles.tileHighlight,
-            isSelected ? styles.selectedTileHighlight : styles.hintedTileHighlight,
+            isSelected
+              ? styles.selectedTileHighlight
+              : styles.hintedTileHighlight,
           ]}
         />
       ) : null}
@@ -272,7 +286,7 @@ function IconButton({ label, icon, disabled = false, onPress }) {
         pressed ? styles.buttonPressed : null,
       ]}
     >
-      <Icon width={24} height={24} color="#285C53" />
+      <Icon width={24} height={24} color={colors.teal_285C53} />
     </Pressable>
   );
 }
@@ -288,37 +302,37 @@ export function MahjongScreen({ onBack }) {
     28,
     Math.min(Math.round(tileHeight * 0.52), availableRowStep),
   );
-  const boardGeometry = useMemo(
+  const boardGeometry = React.useMemo(
     () => ({ tileWidth, tileHeight, rowStep }),
     [rowStep, tileHeight, tileWidth],
   );
-  const audioRef = useRef(null);
-  const matchTimeoutRef = useRef(null);
-  const selectedOriginalFaceUpRef = useRef(null);
-  const [tiles, setTiles] = useState(() =>
+  const audioRef = React.useRef(null);
+  const matchTimeoutRef = React.useRef(null);
+  const selectedOriginalFaceUpRef = React.useRef(null);
+  const [tiles, setTiles] = React.useState(() =>
     createMahjongBoard(Math.random, boardGeometry),
   );
-  const [selectedId, setSelectedId] = useState(null);
-  const [hintIds, setHintIds] = useState([]);
-  const [score, setScore] = useState(0);
-  const [matchedPairs, setMatchedPairs] = useState(0);
-  const [history, setHistory] = useState([]);
-  const [message, setMessage] = useState(
+  const [selectedId, setSelectedId] = React.useState(null);
+  const [hintIds, setHintIds] = React.useState([]);
+  const [score, setScore] = React.useState(0);
+  const [matchedPairs, setMatchedPairs] = React.useState(0);
+  const [history, setHistory] = React.useState([]);
+  const [message, setMessage] = React.useState(
     'Lật quân đang mở hoặc ghép hai quân giống nhau',
   );
-  const [hasWon, setHasWon] = useState(false);
-  const [faceDownIds, setFaceDownIds] = useState([]);
-  const [isResolving, setIsResolving] = useState(false);
-  const [soundEnabled, setSoundEnabled] = useState(true);
-  const [isSoundHydrated, setIsSoundHydrated] = useState(false);
+  const [hasWon, setHasWon] = React.useState(false);
+  const [faceDownIds, setFaceDownIds] = React.useState([]);
+  const [isResolving, setIsResolving] = React.useState(false);
+  const [soundEnabled, setSoundEnabled] = React.useState(true);
+  const [isSoundHydrated, setIsSoundHydrated] = React.useState(false);
 
   const boardWidth = tileWidth * 4 + 14;
   const boardHeight = rowStep * 7 + tileHeight + 28;
-  const freeTileIds = useMemo(
+  const freeTileIds = React.useMemo(
     () => new Set(getFreeTiles(tiles, boardGeometry).map(tile => tile.id)),
     [boardGeometry, tiles],
   );
-  const activeTiles = useMemo(
+  const activeTiles = React.useMemo(
     () =>
       tiles
         .filter(tile => tile.active)
@@ -332,16 +346,13 @@ export function MahjongScreen({ onBack }) {
   );
   const remainingPairs = activeTiles.length / 2;
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (
       isResolving ||
       selectedId ||
       remainingPairs === 0 ||
       tiles.some(
-        tile =>
-          tile.active &&
-          !tile.faceUp &&
-          freeTileIds.has(tile.id),
+        tile => tile.active && !tile.faceUp && freeTileIds.has(tile.id),
       ) ||
       findAvailablePair(tiles, boardGeometry)
     ) {
@@ -363,7 +374,7 @@ export function MahjongScreen({ onBack }) {
     tiles,
   ]);
 
-  useEffect(() => {
+  React.useEffect(() => {
     const audio = createMahjongAudio(false);
     audio.setAppActive(AppState.currentState === 'active');
     const appStateSubscription = AppState.addEventListener(
@@ -380,7 +391,7 @@ export function MahjongScreen({ onBack }) {
     };
   }, []);
 
-  useEffect(
+  React.useEffect(
     () => () => {
       if (matchTimeoutRef.current) {
         clearTimeout(matchTimeoutRef.current);
@@ -389,7 +400,7 @@ export function MahjongScreen({ onBack }) {
     [],
   );
 
-  useEffect(() => {
+  React.useEffect(() => {
     let isActive = true;
 
     AsyncStorage.getItem(SOUND_KEY)
@@ -410,7 +421,7 @@ export function MahjongScreen({ onBack }) {
     };
   }, []);
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (!isSoundHydrated) {
       return;
     }
@@ -717,9 +728,7 @@ export function MahjongScreen({ onBack }) {
             <View style={styles.freeDot} />
             <Text style={styles.ruleText}>Quân đang mở</Text>
           </View>
-          <Text style={styles.ruleDescription}>
-            Không chọn quân đang bị đè
-          </Text>
+          <Text style={styles.ruleDescription}>Không chọn quân đang bị đè</Text>
         </View>
 
         <View style={styles.controls}>
@@ -731,7 +740,7 @@ export function MahjongScreen({ onBack }) {
               pressed ? styles.buttonPressed : null,
             ]}
           >
-            <IconHint width={20} height={20} color="#25846F" />
+            <IconHint width={20} height={20} color={colors.teal_25846F} />
             <Text style={styles.secondaryButtonText}>GỢI Ý</Text>
           </Pressable>
           <Pressable
@@ -742,7 +751,7 @@ export function MahjongScreen({ onBack }) {
               pressed ? styles.buttonPressed : null,
             ]}
           >
-            <IconShuffle width={20} height={20} color="#FFFFFF" />
+            <IconShuffle width={20} height={20} color={colors.white_FFFFFF} />
             <Text style={styles.primaryButtonText}>XÁO BÀI</Text>
           </Pressable>
         </View>
@@ -758,7 +767,7 @@ export function MahjongScreen({ onBack }) {
         <View style={styles.modalBackdrop}>
           <View style={styles.winCard}>
             <View style={styles.winIcon}>
-              <IconTrophy width={38} height={38} color="#168B59" />
+              <IconTrophy width={38} height={38} color={colors.green_168B59} />
             </View>
             <Text style={styles.winTitle}>Hoàn thành!</Text>
             <Text style={styles.winScore}>Bạn đạt {score} điểm</Text>
@@ -785,14 +794,14 @@ export function MahjongScreen({ onBack }) {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#6F2E15',
+    backgroundColor: colors.brown_6F2E15,
   },
   container: {
     flex: 1,
     alignItems: 'center',
     paddingHorizontal: 12,
     paddingBottom: 16,
-    backgroundColor: '#075A47',
+    backgroundColor: colors.teal_075A47,
   },
   header: {
     width: '106%',
@@ -801,14 +810,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#8A421F',
+    backgroundColor: colors.brown_8A421F,
     borderBottomWidth: 3,
-    borderBottomColor: '#D3974D',
+    borderBottomColor: colors.brown_D3974D,
   },
   headerSide: {
     width: 88,
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
   },
   headerActions: {
     justifyContent: 'flex-end',
@@ -820,9 +830,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#D99A51',
+    backgroundColor: colors.brown_D99A51,
     borderWidth: 2,
-    borderColor: '#F0C476',
+    borderColor: colors.orange_F0C476,
   },
   disabledButton: {
     opacity: 0.35,
@@ -835,17 +845,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   title: {
-    color: '#FFF0C7',
+    color: colors.beige_FFF0C7,
     fontSize: 24,
     fontWeight: '900',
     letterSpacing: 1.2,
-    textShadowColor: '#3A1408',
+    textShadowColor: colors.red_3A1408,
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 1,
   },
   subtitle: {
     marginTop: 2,
-    color: '#F1C47C',
+    color: colors.orange_F1C47C,
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 1,
@@ -858,23 +868,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: 12,
-    backgroundColor: '#064636',
+    backgroundColor: colors.teal_064636,
     borderWidth: 2,
-    borderColor: '#14745C',
+    borderColor: colors.teal_14745C,
   },
   statItem: {
     flex: 1,
     alignItems: 'center',
   },
   statLabel: {
-    color: '#8DD8C0',
+    color: colors.green_8DD8C0,
     fontSize: 12,
     fontWeight: '800',
     letterSpacing: 0.8,
   },
   statValue: {
     marginTop: 1,
-    color: '#FFF0B9',
+    color: colors.beige_FFF0B9,
     fontSize: 26,
     lineHeight: 31,
     fontWeight: '900',
@@ -882,12 +892,12 @@ const styles = StyleSheet.create({
   statDivider: {
     width: 1,
     height: 31,
-    backgroundColor: '#2B806B',
+    backgroundColor: colors.teal_2B806B,
   },
   message: {
     width: '100%',
     height: 36,
-    color: '#D4F3E7',
+    color: colors.green_D4F3E7,
     fontSize: 15,
     lineHeight: 36,
     fontWeight: '700',
@@ -897,10 +907,10 @@ const styles = StyleSheet.create({
     position: 'relative',
     overflow: 'visible',
     borderRadius: 22,
-    backgroundColor: '#064A3A',
+    backgroundColor: colors.teal_064A3A,
     borderWidth: 3,
-    borderColor: '#14725B',
-    shadowColor: '#001D15',
+    borderColor: colors.teal_14725B,
+    shadowColor: colors.green_001D15,
     shadowOffset: { width: 0, height: 7 },
     shadowOpacity: 0.5,
     shadowRadius: 8,
@@ -913,9 +923,9 @@ const styles = StyleSheet.create({
     bottom: 14,
     left: 14,
     borderRadius: 18,
-    backgroundColor: '#075B47',
+    backgroundColor: colors.teal_075B47,
     borderWidth: 1,
-    borderColor: '#0D6A53',
+    borderColor: colors.teal_0D6A53,
   },
   tilePosition: {
     position: 'absolute',
@@ -934,10 +944,10 @@ const styles = StyleSheet.create({
     borderWidth: 3,
   },
   selectedTileHighlight: {
-    borderColor: '#FFD85E',
+    borderColor: colors.orange_FFD85E,
   },
   hintedTileHighlight: {
-    borderColor: '#5DFFBB',
+    borderColor: colors.green_5DFFBB,
   },
   tile: {
     position: 'absolute',
@@ -949,33 +959,42 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: 10,
     borderWidth: 2,
-    shadowColor: '#000000',
+    shadowColor: colors.black_000000,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.35,
     shadowRadius: 5,
     elevation: 9,
   },
   tileFront: {
-    backgroundColor: '#FFFDF2',
-    borderColor: '#DDD8C5',
+    backgroundColor: colors.yellow_FFFDF2,
+    borderColor: colors.beige_DDD8C5,
     borderBottomWidth: 7,
-    borderBottomColor: '#B7B7A3',
+    borderBottomColor: colors.yellow_B7B7A3,
   },
   tileBack: {
-    backgroundColor: '#946442',
-    borderColor: '#BC8D62',
+    backgroundColor: colors.brown_946442,
+    borderColor: colors.brown_BC8D62,
     borderBottomWidth: 7,
-    borderBottomColor: '#5C3825',
+    borderBottomColor: colors.brown_5C3825,
   },
   lockedTileBack: {
-    backgroundColor: '#76513B',
-    borderColor: '#8E6448',
-    borderBottomColor: '#4C3326',
+    backgroundColor: colors.brown_76513B,
+    borderColor: colors.brown_8E6448,
+    borderBottomColor: colors.brown_4C3326,
   },
   lockedTile: {
-    backgroundColor: '#E7E6D9',
-    borderColor: '#C7C6B8',
-    borderBottomColor: '#9FA896',
+    backgroundColor: colors.gray_E2E2DE,
+    borderColor: colors.gray_C8C8C2,
+    borderBottomColor: colors.gray_AFAFA7,
+  },
+  tileFace: {
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  lockedTileFace: {
+    opacity: 0.45,
   },
   selectedTile: {
     transform: [{ translateY: -5 }, { scale: 1.05 }],
@@ -1003,9 +1022,12 @@ const styles = StyleSheet.create({
   },
   honorCharacter: {
     fontWeight: '900',
-    textShadowColor: '#FFFFFF',
+    textShadowColor: colors.white_FFFFFF,
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 1,
+  },
+  lockedHonorCharacter: {
+    textShadowColor: colors.transparent,
   },
   flowerMark: {
     position: 'absolute',
@@ -1021,7 +1043,10 @@ const styles = StyleSheet.create({
     borderWidth: 5,
     borderColor: BLUE_INK,
     borderRadius: 4,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.white_FFFFFF,
+  },
+  lockedWhiteDragon: {
+    backgroundColor: colors.gray_E2E2DE,
   },
   pipGrid: {
     width: '70%',
@@ -1054,13 +1079,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: 5,
     borderWidth: 1,
-    borderColor: '#F4FFEE',
+    borderColor: colors.green_F4FFEE,
   },
   bambooJoint: {
     width: '140%',
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#E9D46D',
+    backgroundColor: colors.orange_E9D46D,
   },
   rulesRow: {
     width: '100%',
@@ -1079,15 +1104,15 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#63F0B8',
+    backgroundColor: colors.green_63F0B8,
   },
   ruleText: {
-    color: '#E4FFF4',
+    color: colors.green_E4FFF4,
     fontSize: 14,
     fontWeight: '800',
   },
   ruleDescription: {
-    color: '#9DD7C4',
+    color: colors.green_9DD7C4,
     fontSize: 13,
     fontWeight: '600',
   },
@@ -1106,12 +1131,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 7,
     borderRadius: 29,
-    backgroundColor: '#D99A51',
+    backgroundColor: colors.brown_D99A51,
     borderWidth: 3,
-    borderColor: '#F0C476',
+    borderColor: colors.orange_F0C476,
   },
   secondaryButtonText: {
-    color: '#48200E',
+    color: colors.brown_48200E,
     fontSize: 15,
     fontWeight: '900',
     letterSpacing: 0.8,
@@ -1123,12 +1148,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 7,
     borderRadius: 29,
-    backgroundColor: '#6E2D16',
+    backgroundColor: colors.brown_6E2D16,
     borderWidth: 3,
-    borderColor: '#D99A51',
+    borderColor: colors.brown_D99A51,
   },
   primaryButtonText: {
-    color: '#FFE6A6',
+    color: colors.beige_FFE6A6,
     fontSize: 15,
     fontWeight: '900',
     letterSpacing: 0.8,
@@ -1138,7 +1163,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 28,
-    backgroundColor: '#032A2188',
+    backgroundColor: colors.teal_032A2188,
   },
   winCard: {
     width: '100%',
@@ -1146,9 +1171,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 24,
     borderRadius: 28,
-    backgroundColor: '#FFF8E9',
+    backgroundColor: colors.beige_FFF8E9,
     borderWidth: 4,
-    borderColor: '#D99A51',
+    borderColor: colors.brown_D99A51,
   },
   winIcon: {
     width: 64,
@@ -1156,20 +1181,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 13,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.white_FFFFFF,
     borderWidth: 2,
-    borderColor: '#E1D0AB',
+    borderColor: colors.beige_E1D0AB,
     borderBottomWidth: 7,
   },
   winTitle: {
     marginTop: 18,
-    color: '#173F3A',
+    color: colors.teal_173F3A,
     fontSize: 29,
     fontWeight: '900',
   },
   winScore: {
     marginTop: 6,
-    color: '#6B7772',
+    color: colors.gray_6B7772,
     fontSize: 17,
     fontWeight: '700',
   },
@@ -1180,10 +1205,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 17,
-    backgroundColor: '#3AA985',
+    backgroundColor: colors.green_3AA985,
   },
   playAgainText: {
-    color: '#FFFFFF',
+    color: colors.white_FFFFFF,
     fontSize: 15,
     fontWeight: '900',
     letterSpacing: 0.8,
@@ -1193,7 +1218,7 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
   },
   leaveText: {
-    color: '#65726E',
+    color: colors.gray_65726E,
     fontSize: 15,
     fontWeight: '700',
   },
